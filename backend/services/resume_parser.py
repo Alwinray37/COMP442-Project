@@ -1,6 +1,7 @@
 import re
 import io
 from PyPDF2 import PdfReader
+from config import RESUME_CSV, JOB_POSTINGS_CSV
 
 def parse_resume_text(record_text):
     clean_text = re.sub(r'\W+', ' ', record_text).lower()
