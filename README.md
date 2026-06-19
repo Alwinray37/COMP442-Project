@@ -1,223 +1,121 @@
 # COMP442 Project
 
-AI-powered resume tailoring and job matching system for COMP442.
-
-The project combines resume data, LinkedIn job posting data, and O*NET skill reference data to support NLP-based resume parsing, job matching, skill-gap analysis, and exploratory data visualization.
+Job title recommender system for COMP442. Given a user's resume or inputted skills and experience, the model recommends the most suitable job titles.
 
 ## Project Structure
 
 ```text
 COMP442-Project/
-  backend/
-    app.py
-    config.py
-    services/
-      job_parser.py
-      recommender.py
-      resume_parser.py
-      skill_rules.py
-    scripts/
-      create_visualizations.py
-      create_correlation_analysis.py
-      create_resume_histogram.py
   data/
-    raw/
-      Resume.csv
-      job_postings.csv
-      Occupation Data.xlsx
-      Software Skills.xlsx
-      Transferable Skills.xlsx
+    raw/                    # original datasets, never modified
+    processed/              # cleaned outputs from preprocessing
+  ml/
+    preprocess.py           # cleans data and saves to data/processed/
+    train_classifier.py     # trains TF-IDF + Logistic Regression, saves to models/
+    evaluate.py             # accuracy, classification report, confusion matrix
+    create_visualizations.py
+    create_correlation_analysis.py
+    create_missingness_chart.py
+    create_resume_histogram.py
+  models/                   # saved .pkl model artifacts (git-ignored)
+  notebooks/                # Jupyter notebooks for EDA
+  backend/
+    app.py                  # Flask API
+    services/
+      recommender.py        # loads saved models, runs predictions
+      resume_parser.py      # parses PDF and text resumes
   frontend/
     src/
       pages/
       components/
   outputs/
-    diagrams/
-    figures/
+    figures/                # generated charts and visualizations
   requirements.txt
 ```
 
 ## Data
 
-Place raw datasets in `data/raw/`.
+Raw datasets go in `data/raw/` and are never modified.
 
-Expected files:
+- `data/raw/Resume.csv` — 2,484 labeled resumes across 24 job categories
+- `data/raw/job_postings.csv` — original LinkedIn job postings (unused after HuggingFace migration)
+- `data/raw/Occupation Data.xlsx` — O*NET occupation classifications
+- `data/raw/Software Skills.xlsx` — O*NET software skills by occupation
+- `data/raw/Transferable Skills.xlsx` — O*NET soft skills by occupation
 
-- `data/raw/Resume.csv`
-- `data/raw/job_postings.csv`
-- `data/raw/Occupation Data.xlsx`
-- `data/raw/Software Skills.xlsx`
-- `data/raw/Transferable Skills.xlsx`
+The primary job postings data is now sourced from the HuggingFace dataset `lukebarousse/data_jobs` (785,741 postings with 10 standardized job title labels). It is downloaded automatically during preprocessing.
 
-The visualization scripts can still run without the O*NET Excel files. Backend skill-gap analysis depends on the O*NET files.
+## ML Pipeline
 
-## Backend Purpose
+Run these in order:
 
-The backend provides the API and data processing logic.
-
-Main features:
-
-- Parse resume text and PDF resumes.
-- Load and clean job posting descriptions.
-- Match resumes to job postings using TF-IDF and cosine similarity.
-- Analyze skill gaps using O*NET skill reference files.
-
-Backend endpoints:
-
-- `GET /status`
-- `POST /api/match`
-- `POST /api/analyze_gap`
-
-## Frontend Purpose
-
-The frontend is a React/Vite app for the resume matching interface.
-
-Current pages:
-
-- `/` project landing page
-- `/intake` resume intake UI
-
-The intake page currently supports PDF upload and manual profile entry UI. Full API connection is still in progress.
-
-## Requirements
-
-Python requirements are in:
-
-```text
-requirements.txt
-```
-
-Current packages:
-
-```text
-pandas
-matplotlib
-seaborn
-scipy
-```
-
-The backend also uses:
-
-```text
-Flask
-PyPDF2
-scikit-learn
-openpyxl
-requests
-```
-
-These are listed in `backend/requirements.txt`.
-
-## Setup
-
-Create and activate a virtual environment:
-
+**1. Preprocess**
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
+python ml/preprocess.py
 ```
+Cleans the resume dataset and downloads/cleans the HuggingFace jobs dataset. Outputs saved to `data/processed/`.
 
-Install root analysis requirements:
-
+**2. Train**
 ```bash
-pip install -r requirements.txt
+python ml/train_classifier.py
 ```
+Trains a TF-IDF vectorizer and Logistic Regression classifier on job skills → job title. Saves `tfidf_vectorizer.pkl` and `logistic_classifier.pkl` to `models/`.
 
-Install backend requirements:
-
+**3. Evaluate**
 ```bash
-pip install -r backend/requirements.txt
+python ml/evaluate.py
 ```
+Prints accuracy and classification report. Saves confusion matrix to `outputs/figures/`.
 
-Install frontend dependencies:
+## Backend
 
-```bash
-cd frontend
-npm install
-```
+The Flask API loads the saved models and serves predictions. It does not retrain on startup.
 
-## Run Backend
+Endpoints:
+- `GET /status` — health check
+- `POST /api/match` — accepts PDF or JSON resume, returns top 5 job title recommendations with confidence scores
 
-From the project root:
-
+Run the backend (models must be trained first):
 ```bash
 cd backend
 ../.venv/bin/python app.py
 ```
 
-The backend runs at:
+Runs at `http://127.0.0.1:5000`.
 
-```text
-http://127.0.0.1:5000
-```
+## Frontend
 
-Check status:
-
-```bash
-curl http://127.0.0.1:5000/status
-```
-
-## Run Frontend
-
-From the project root:
+React + Vite app with resume intake UI (PDF upload and manual skill/experience entry).
 
 ```bash
 cd frontend
+npm install
 npm run dev
 ```
 
-The frontend usually runs at:
+Runs at `http://localhost:5173`.
 
-```text
-http://localhost:5173
+## Setup
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+pip install -r backend/requirements.txt
 ```
 
 ## Generate Visualizations
 
-Run exploratory resume and job-posting visualizations:
-
 ```bash
-.venv/bin/python backend/scripts/create_visualizations.py
+python ml/create_visualizations.py
+python ml/create_correlation_analysis.py
+python ml/create_missingness_chart.py
 ```
 
-Outputs:
+Outputs saved to `outputs/figures/`.
 
-```text
-outputs/figures/resume_category_distribution.png
-outputs/figures/resume_token_count_histogram.png
-outputs/figures/resume_numeric_feature_boxplot.png
-outputs/figures/numeric_feature_correlation_heatmap.png
-```
+## Notes
 
-Run job posting correlation analysis:
-
-```bash
-.venv/bin/python backend/scripts/create_correlation_analysis.py
-```
-
-Outputs:
-
-```text
-outputs/figures/job_numeric_correlation_heatmap.png
-outputs/figures/job_pearson_correlation_summary.csv
-outputs/figures/job_chi_square_summary.csv
-```
-
-Run the simple resume histogram script:
-
-```bash
-.venv/bin/python backend/scripts/create_resume_histogram.py
-```
-
-Output:
-
-```text
-outputs/diagrams/resume_word_count_histogram.png
-```
-
-## Current Notes
-
-- Raw data files are ignored by git.
-- Generated figures are stored in `outputs/`.
-- `backend/config.py` centralizes project paths.
-- The frontend and backend are not fully connected yet.
+- Raw data files and trained models are git-ignored.
+- The HuggingFace dataset requires `huggingface_hub` to be installed.
+- Frontend and backend API connection is in progress.
