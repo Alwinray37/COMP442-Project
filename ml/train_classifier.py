@@ -10,10 +10,11 @@ PROCESSED = os.path.join(os.path.dirname(__file__), '../data/processed')
 MODELS = os.path.join(os.path.dirname(__file__), '../models')
 
 def train():
-    df = pd.read_csv(os.path.join(PROCESSED, 'jobs_clean.csv'))
+    df = pd.read_csv(os.path.join(PROCESSED, 'resumes_clean.csv'))
+    df = df.dropna(subset=['Resume_str', 'Category'])
 
-    X = df['job_skills']
-    y = df['job_title_short']
+    X = df['Resume_str']
+    y = df['Category']
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 

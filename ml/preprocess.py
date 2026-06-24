@@ -5,10 +5,14 @@ import os
 RAW = os.path.join(os.path.dirname(__file__), '../data/raw')
 PROCESSED = os.path.join(os.path.dirname(__file__), '../data/processed')
 
+os.makedirs(PROCESSED, exist_ok=True)
+
+
 def clean_text(text):
     text = str(text).lower()
     text = re.sub(r'\W+', ' ', text)
     return text.strip()
+
 
 def preprocess_resumes():
     df = pd.read_csv(os.path.join(RAW, 'Resume.csv'))
@@ -18,17 +22,46 @@ def preprocess_resumes():
     df.to_csv(os.path.join(PROCESSED, 'resumes_clean.csv'), index=False)
     print(f"Resumes: {len(df)} rows saved to data/processed/resumes_clean.csv")
 
-def preprocess_jobs():
-    df = pd.read_csv('hf://datasets/lukebarousse/data_jobs/data_jobs.csv')
-    drop_cols = ['job_via', 'job_posting_url', 'job_no_degree_mention',
-                 'job_health_insurance', 'salary_rate', 'salary_hour_avg',
-                 'search_location', 'job_posted_date']
-    df = df.drop(columns=[c for c in drop_cols if c in df.columns])
-    df = df.dropna(subset=['job_title_short', 'job_skills'])
-    df['job_skills'] = df['job_skills'].apply(clean_text)
-    df.to_csv(os.path.join(PROCESSED, 'jobs_clean.csv'), index=False)
-    print(f"Jobs: {len(df)} rows saved to data/processed/jobs_clean.csv")
+
+def preprocess_onet():
+    skill_files = [
+        'Essential Skills.xlsx',
+        'Knowledge.xlsx',
+        'Abilities.xlsx',
+        'Work Activities.xlsx',
+        'Work Styles.xlsx',
+    ]
+
+    frames = []
+    for fname in skill_files:
+        df = pd.read_excel(os.path.join(RAW, fname))
+        # Work Styles has no Scale ID — include all rows
+        if 'Scale ID' in df.columns:
+            df = df[df['Scale ID'] == 'IM']
+            df = df[df['Data Value'] >= 3.0]
+        frames.append(df[['O*NET-SOC Code', 'Element Name']])
+
+    combined = pd.concat(frames, ignore_index=True)
+
+    # Build one text profile per occupation by joining all element names
+    profiles = (
+        combined
+        .groupby('O*NET-SOC Code')['Element Name']
+        .apply(lambda names: ' '.join(names.dropna().unique()))
+        .reset_index()
+        .rename(columns={'Element Name': 'profile_text'})
+    )
+
+    # Join occupation titles from Occupation Data
+    occ = pd.read_excel(os.path.join(RAW, 'Occupation Data.xlsx'))[['O*NET-SOC Code', 'Title']]
+    profiles = profiles.merge(occ, on='O*NET-SOC Code', how='left')
+
+    profiles['profile_text'] = profiles['profile_text'].apply(clean_text)
+    profiles = profiles[['O*NET-SOC Code', 'Title', 'profile_text']]
+    profiles.to_csv(os.path.join(PROCESSED, 'onet_profiles.csv'), index=False)
+    print(f"O*NET: {len(profiles)} occupation profiles saved to data/processed/onet_profiles.csv")
+
 
 if __name__ == '__main__':
     preprocess_resumes()
-    preprocess_jobs()
+    preprocess_onet()

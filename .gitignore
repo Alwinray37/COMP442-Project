@@ -2,6 +2,7 @@ backend/venv/
 venv/
 .venv/
 .cache/
+.claude/
 
 __pycache__/
 *.pyc
