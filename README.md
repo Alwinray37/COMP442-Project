@@ -1,24 +1,25 @@
 # COMP442 Project
 
-COMP442 ML class project -- Job recommender system. User uploads resume or inputs experience and education items, skills and interests, and our program will recommend job titles which best fit their background. 
+COMP442 ML class project -- Job recommender system. User uploads resume or inputs experience and education items, skills and interests, and our program will recommend job titles which best fit their background.
 
 ## How It Works
-The system is built on a supervised text classification pipeline trained on real-world resume data.
 
-1. Data Collection & Preprocessing
-We sourced a dataset of 2,484 labeled resumes across 24 broad job categories including Healthcare, Finance, Engineering, Education, Sales, Arts, and more. The resume text is cleaned — lowercased, punctuation removed — and duplicate records are dropped before training.
+The system is built on a two-stage pipeline.
 
-2. Feature Extraction
-Each resume is converted into a numerical representation using TF-IDF (Term Frequency–Inverse Document Frequency). This technique captures which words and phrases are most significant in a resume relative to the entire dataset, turning raw text into a vector the model can learn from.
+1. **Data Collection & Preprocessing**
+We sourced a dataset of 2,484 labeled resumes across 24 broad job categories including Healthcare, Finance, Engineering, Education, Sales, Arts, and more. The resume text is cleaned — lowercased, punctuation removed — and duplicate records are dropped before training. Separately, O\*NET occupation profiles are built by combining skills, knowledge, abilities, work activities, and work styles into one text document per occupation.
 
-3. Model Training
-A Logistic Regression classifier is trained on the TF-IDF vectors using the job category labels as targets. The model learns the statistical relationship between the language used in a resume and the job title it belongs to. Training uses an 80/20 train-test split and is evaluated using accuracy and a classification report.
+2. **Feature Extraction**
+Each resume and occupation profile is converted into a numerical representation using TF-IDF (Term Frequency–Inverse Document Frequency). This captures which words and phrases are most significant relative to the entire dataset, turning raw text into a vector the model can learn from.
 
-4. Occupation Matching with O*NET
-After predicting a broad job category, the system cross-references the O*NET occupational database — which contains over 1,000 standardized occupations with detailed skill, knowledge, ability, and work activity profiles — to surface specific job titles within the predicted field. This allows the system to recommend precise, industry-recognized roles.
+3. **Model Training**
+A Logistic Regression classifier is trained on the TF-IDF resume vectors using the 24 job category labels as targets. Training uses an 80/20 train-test split and is evaluated using accuracy and a classification report.
 
-5. User Interface
-Users interact through a React web application where they can either upload a PDF resume or manually enter their skills, experience, and education. The frontend sends the input to a Flask REST API, which runs it through the trained model and returns a ranked list of job title recommendations with confidence scores.
+4. **Occupation Matching with O\*NET**
+When a new resume is submitted, the classifier predicts its broad job category. The system then computes cosine similarity between the resume vector and all O\*NET occupation profiles within that category to surface the most relevant specific job titles.
+
+5. **User Interface**
+Users interact through a React web application where they can either upload a PDF resume or manually enter their skills, experience, and education. The frontend sends the input to a Flask REST API, which runs it through the trained model and returns a ranked list of job title recommendations.
 
 ## Project Structure
 
@@ -28,14 +29,14 @@ COMP442-Project/
     raw/                    # original datasets, never modified
     processed/              # cleaned outputs from preprocessing
   ml/
-    preprocess.py           # cleans data and saves to data/processed/
+    preprocess.py           # cleans Resume.csv and builds O*NET profiles
     train_classifier.py     # trains TF-IDF + Logistic Regression, saves to models/
     evaluate.py             # accuracy, classification report, confusion matrix
     create_visualizations.py
     create_correlation_analysis.py
     create_missingness_chart.py
     create_resume_histogram.py
-  models/                   # saved .pkl model artifacts (git-ignored)
+  models/                   # saved .pkl model artifacts
   notebooks/                # Jupyter notebooks for EDA
   backend/
     app.py                  # Flask API
@@ -55,13 +56,14 @@ COMP442-Project/
 
 Raw datasets go in `data/raw/` and are never modified.
 
-- `data/raw/Resume.csv` — 2,484 labeled resumes across 24 job categories
-- `data/raw/job_postings.csv` — original LinkedIn job postings (unused after HuggingFace migration)
-- `data/raw/Occupation Data.xlsx` — O*NET occupation classifications
-- `data/raw/Software Skills.xlsx` — O*NET software skills by occupation
-- `data/raw/Transferable Skills.xlsx` — O*NET soft skills by occupation
-
-The primary job postings data is now sourced from the HuggingFace dataset `lukebarousse/data_jobs` (785,741 postings with 10 standardized job title labels). It is downloaded automatically during preprocessing.
+- `data/raw/Resume.csv` — 2,484 labeled resumes across 24 job categories (classifier training data)
+- `data/raw/Occupation Data.xlsx` — O\*NET occupation titles and SOC codes
+- `data/raw/Essential Skills.xlsx` — core skills per occupation
+- `data/raw/Knowledge.xlsx` — knowledge domains per occupation
+- `data/raw/Abilities.xlsx` — required abilities per occupation
+- `data/raw/Work Activities.xlsx` — day-to-day tasks per occupation
+- `data/raw/Work Styles.xlsx` — personality and work style traits per occupation
+- `data/raw/Software Skills.xlsx` — O\*NET software skills by occupation
 
 ## ML Pipeline
 
@@ -71,13 +73,13 @@ Run these in order:
 ```bash
 python ml/preprocess.py
 ```
-Cleans the resume dataset and downloads/cleans the HuggingFace jobs dataset. Outputs saved to `data/processed/`.
+Cleans `Resume.csv` and builds O\*NET occupation profiles from the xlsx files. Outputs saved to `data/processed/`.
 
 **2. Train**
 ```bash
 python ml/train_classifier.py
 ```
-Trains a TF-IDF vectorizer and Logistic Regression classifier on job skills → job title. Saves `tfidf_vectorizer.pkl` and `logistic_classifier.pkl` to `models/`.
+Trains a TF-IDF vectorizer and Logistic Regression classifier on resume text → job category. Saves `tfidf_vectorizer.pkl` and `logistic_classifier.pkl` to `models/`.
 
 **3. Evaluate**
 ```bash
@@ -91,7 +93,7 @@ The Flask API loads the saved models and serves predictions. It does not retrain
 
 Endpoints:
 - `GET /status` — health check
-- `POST /api/match` — accepts PDF or JSON resume, returns top 5 job title recommendations with confidence scores
+- `POST /api/match` — accepts PDF or JSON resume, returns top job title recommendations
 
 Run the backend (models must be trained first):
 ```bash
@@ -135,5 +137,4 @@ Outputs saved to `outputs/figures/`.
 ## Notes
 
 - Raw data files and trained models are git-ignored.
-- The HuggingFace dataset requires `huggingface_hub` to be installed.
 - Frontend and backend API connection is in progress.
