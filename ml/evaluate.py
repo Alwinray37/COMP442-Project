@@ -11,9 +11,10 @@ MODELS = os.path.join(os.path.dirname(__file__), '../models')
 FIGURES = os.path.join(os.path.dirname(__file__), '../outputs/figures')
 
 def evaluate():
-    df = pd.read_csv(os.path.join(PROCESSED, 'jobs_clean.csv'))
-    X = df['job_skills']
-    y = df['job_title_short']
+    df = pd.read_csv(os.path.join(PROCESSED, 'resumes_clean.csv'))
+    df = df.dropna(subset=['Resume_str', 'Category'])
+    X = df['Resume_str']
+    y = df['Category']
 
     _, X_test, _, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
@@ -36,7 +37,7 @@ def evaluate():
                 cmap='Blues', ax=ax)
     ax.set_xlabel('Predicted')
     ax.set_ylabel('Actual')
-    ax.set_title('Job Title Classifier — Confusion Matrix')
+    ax.set_title('Resume Category Classifier — Confusion Matrix')
     plt.tight_layout()
     plt.savefig(os.path.join(FIGURES, 'classifier_confusion_matrix.png'), dpi=150)
     print(f"Confusion matrix saved to outputs/figures/")
