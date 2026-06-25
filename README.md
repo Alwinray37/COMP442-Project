@@ -2,6 +2,8 @@
 
 COMP442 ML class project -- Job recommender system. User uploads resume or inputs experience and education items, skills and interests, and our program will recommend job titles which best fit their background.
 
+**New to the project? See [SETUP.md](SETUP.md) for step-by-step instructions.**
+
 ## How It Works
 
 The system is built on a two-stage pipeline.
