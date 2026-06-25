@@ -218,7 +218,34 @@ export default function Intake() {
     }
   }
 
-  const handleSubmit = () => {
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
+
+  const buildResumeText = () => {
+    const parts = []
+    if (profile.headline) parts.push(profile.headline)
+    if (profile.summary) parts.push(profile.summary)
+    if (skills.length) parts.push(skills.join(' '))
+    if (interests.length) parts.push(interests.join(' '))
+    jobs.forEach((j) => {
+      if (j.title) parts.push(j.title)
+      if (j.description) parts.push(j.description)
+      if (j.skills?.length) parts.push(j.skills.join(' '))
+    })
+    education.forEach((e) => {
+      if (e.degree) parts.push(e.degree)
+      if (e.details) parts.push(e.details)
+    })
+    projects.forEach((p) => {
+      if (p.name) parts.push(p.name)
+      if (p.description) parts.push(p.description)
+      if (p.skills?.length) parts.push(p.skills.join(' '))
+    })
+    if (rawResumeText) parts.push(rawResumeText)
+    return parts.join(' ')
+  }
+
+  const handleSubmit = async () => {
     const userProfile = {
       profile,
       experience: jobs,
@@ -229,7 +256,26 @@ export default function Intake() {
       rawResumeText,
     }
     localStorage.setItem('userProfile', JSON.stringify(userProfile))
-    navigate('/profile')
+    localStorage.removeItem('recommendations')
+
+    setSubmitting(true)
+    setSubmitError('')
+    try {
+      const resumeText = buildResumeText()
+      const res = await fetch('http://localhost:5001/api/match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resume_text: resumeText }),
+      })
+      if (!res.ok) throw new Error(`Server error: ${res.status}`)
+      const data = await res.json()
+      localStorage.setItem('recommendations', JSON.stringify(data))
+    } catch (err) {
+      setSubmitError('Could not reach the backend. Make sure it is running at localhost:5000.')
+    } finally {
+      setSubmitting(false)
+      navigate('/profile')
+    }
   }
 
   return (
@@ -438,9 +484,10 @@ export default function Intake() {
 
           {/* Submit bar */}
           <div className="card submit-bar">
-            <p>Your profile is saved locally — nothing is sent to a server until you submit.</p>
-            <button className="btn-primary" type="button" onClick={handleSubmit}>
-              Save &amp; see recommendations →
+            <p>Your profile is saved locally and sent to the job recommender when you submit.</p>
+            {submitError && <p style={{ color: 'var(--danger)', fontSize: '0.9rem' }}>{submitError}</p>}
+            <button className="btn-primary" type="button" onClick={handleSubmit} disabled={submitting}>
+              {submitting ? 'Getting recommendations…' : 'Save & see recommendations →'}
             </button>
           </div>
         </form>

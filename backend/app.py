@@ -1,8 +1,10 @@
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 from services.resume_parser import parse_resume_text, parse_resume_pdf
 from services.recommender import predict_job_titles
 
 app = Flask(__name__)
+CORS(app)
 
 @app.route('/status', methods=['GET'])
 def status():
@@ -30,4 +32,4 @@ def match_jobs():
     return jsonify({"status": "success", **result})
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=5001)

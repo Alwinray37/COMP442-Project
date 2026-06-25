@@ -19,6 +19,9 @@ function formatRange(from, to) {
 export default function Profile() {
   const navigate = useNavigate()
   const [data, setData] = useState(null)
+  const [recommendations, setRecommendations] = useState(null)
+  const [fetching, setFetching] = useState(false)
+  const [fetchError, setFetchError] = useState('')
 
   useEffect(() => {
     const saved = localStorage.getItem('userProfile')
@@ -27,7 +30,53 @@ export default function Profile() {
       return
     }
     setData(JSON.parse(saved))
+    const recs = localStorage.getItem('recommendations')
+    if (recs) setRecommendations(JSON.parse(recs))
   }, [navigate])
+
+  const runRecommender = async () => {
+    const saved = localStorage.getItem('userProfile')
+    if (!saved) return
+    const profile = JSON.parse(saved)
+    const parts = []
+    if (profile.profile?.headline) parts.push(profile.profile.headline)
+    if (profile.profile?.summary) parts.push(profile.profile.summary)
+    if (profile.skills?.length) parts.push(profile.skills.join(' '))
+    if (profile.interests?.length) parts.push(profile.interests.join(' '))
+    profile.experience?.forEach((j) => {
+      if (j.title) parts.push(j.title)
+      if (j.description) parts.push(j.description)
+      if (j.skills?.length) parts.push(j.skills.join(' '))
+    })
+    profile.education?.forEach((e) => {
+      if (e.degree) parts.push(e.degree)
+      if (e.details) parts.push(e.details)
+    })
+    profile.projects?.forEach((p) => {
+      if (p.name) parts.push(p.name)
+      if (p.description) parts.push(p.description)
+      if (p.skills?.length) parts.push(p.skills.join(' '))
+    })
+    if (profile.rawResumeText) parts.push(profile.rawResumeText)
+
+    setFetching(true)
+    setFetchError('')
+    try {
+      const res = await fetch('http://localhost:5001/api/match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resume_text: parts.join(' ') }),
+      })
+      if (!res.ok) throw new Error(`Server error: ${res.status}`)
+      const recs = await res.json()
+      localStorage.setItem('recommendations', JSON.stringify(recs))
+      setRecommendations(recs)
+    } catch {
+      setFetchError('Could not reach the backend. Make sure it is running at localhost:5000.')
+    } finally {
+      setFetching(false)
+    }
+  }
 
   if (!data) return null
 
@@ -43,9 +92,10 @@ export default function Profile() {
             className="nav-action"
             type="button"
             style={{ border: 'none', cursor: 'pointer' }}
-            onClick={() => alert('Model not connected yet — coming soon!')}
+            onClick={runRecommender}
+            disabled={fetching}
           >
-            Get recommendations →
+            {fetching ? 'Running…' : 'Get recommendations →'}
           </button>
         </div>
       </nav>
@@ -168,21 +218,45 @@ export default function Profile() {
         </div>
       )}
 
-      {/* CTA */}
-      <div className="card panel" style={{ textAlign: 'center' }}>
-        <p className="card-label">Next step</p>
-        <h2>Ready to find your best-fit roles?</h2>
-        <p style={{ color: 'var(--muted)', marginBottom: 20 }}>
-          Run your profile through the job recommender to get your top 5 matched job titles with fit scores.
-        </p>
-        <button
-          className="btn-primary"
-          type="button"
-          onClick={() => alert('Model not connected yet — coming soon!')}
-        >
-          Get job recommendations →
-        </button>
-      </div>
+      {/* Recommendations */}
+      {recommendations ? (
+        <div className="card panel profile-section">
+          <p className="card-label">Predicted field: {recommendations.category}</p>
+          <h3>Your top job matches</h3>
+          <div style={{ marginTop: 16 }}>
+            {recommendations.matches?.map((m, i) => (
+              <div key={m.soc_code} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '10px 0', borderBottom: 'var(--border)' }}>
+                <span style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent)', minWidth: 24 }}>
+                  {i + 1}
+                </span>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontWeight: 600, margin: 0 }}>{m.job_title}</p>
+                  <p style={{ color: 'var(--muted)', fontSize: '0.82rem', margin: 0 }}>{m.soc_code}</p>
+                </div>
+                <span style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>
+                  {Math.round(m.score * 100)}% match
+                </span>
+              </div>
+            ))}
+          </div>
+          {fetchError && <p style={{ color: 'var(--danger)', marginTop: 12, fontSize: '0.9rem' }}>{fetchError}</p>}
+          <button className="btn-secondary" type="button" style={{ marginTop: 20 }} onClick={runRecommender} disabled={fetching}>
+            {fetching ? 'Running…' : 'Re-run recommendations'}
+          </button>
+        </div>
+      ) : (
+        <div className="card panel" style={{ textAlign: 'center' }}>
+          <p className="card-label">Next step</p>
+          <h2>Ready to find your best-fit roles?</h2>
+          <p style={{ color: 'var(--muted)', marginBottom: 20 }}>
+            Run your profile through the job recommender to get your top matched job titles.
+          </p>
+          {fetchError && <p style={{ color: 'var(--danger)', marginBottom: 12, fontSize: '0.9rem' }}>{fetchError}</p>}
+          <button className="btn-primary" type="button" onClick={runRecommender} disabled={fetching}>
+            {fetching ? 'Getting recommendations…' : 'Get job recommendations →'}
+          </button>
+        </div>
+      )}
     </main>
   )
 }

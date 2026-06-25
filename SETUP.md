@@ -1,6 +1,6 @@
 # Getting Started
 
-Instructions for new teammates getting up to speed on the project.
+Instructions for teammates getting up to speed on the project.
 
 ---
 
@@ -64,7 +64,7 @@ source .venv/bin/activate
 cd backend
 python app.py
 ```
-Runs at `http://localhost:5000`. Keep this running.
+Runs at `http://localhost:5001`. Keep this running.
 
 **Terminal 2 — Frontend**
 ```bash
@@ -79,7 +79,7 @@ Runs at `http://localhost:5173`.
 ## Testing the API Directly
 
 ```bash
-curl -X POST http://localhost:5000/api/match \
+curl -X POST http://localhost:5001/api/match \
   -H "Content-Type: application/json" \
   -d '{"resume_text": "paste resume text here"}'
 ```
