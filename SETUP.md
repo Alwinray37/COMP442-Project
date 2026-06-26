@@ -100,7 +100,7 @@ Expected response:
 
 - `category` — the broad job category the classifier predicted from your resume
 - `category_confidence` — confidence for the top broad category
-- `matches` — top 5 specific O*NET job titles ranked by similarity score
+- `matches` — top 10 specific O*NET job titles ranked by similarity score
 
 ---
 

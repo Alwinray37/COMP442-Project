@@ -28,7 +28,7 @@ def match_jobs():
     if not parsed_data or not parsed_data["clean_text"].strip():
         return jsonify({"status": "error", "message": "Could not extract valid text from the resume"}), 400
 
-    result = predict_job_titles(parsed_data["clean_text"], top_k=5)
+    result = predict_job_titles(parsed_data["clean_text"], top_k=10)
     return jsonify({"status": "success", **result})
 
 if __name__ == '__main__':

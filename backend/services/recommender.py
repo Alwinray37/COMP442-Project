@@ -59,7 +59,7 @@ def _clean(text):
     return re.sub(r'\W+', ' ', text.lower()).strip()
 
 
-def predict_job_titles(user_text, top_k=5, category_count=3, confidence_threshold=0.45, candidate_ratio=0.75):
+def predict_job_titles(user_text, top_k=10, category_count=3, confidence_threshold=0.45, candidate_ratio=0.75):
     _load_models()
     text_clean = _clean(user_text)
     tfidf = _vectorizer.transform([text_clean])
