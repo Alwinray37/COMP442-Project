@@ -224,24 +224,20 @@ export default function Profile() {
           <p className="card-label">Predicted field: {recommendations.category}</p>
           <h3>Your top job matches</h3>
           <div style={{ marginTop: 16 }}>
-            {(() => {
-              const matches = recommendations.matches ?? []
-              const maxScore = Math.max(...matches.map((m) => m.score), 1e-9)
-              return matches.map((m, i) => (
-                <div key={m.soc_code} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '10px 0', borderBottom: 'var(--border)' }}>
-                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent)', minWidth: 24 }}>
-                    {i + 1}
-                  </span>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontWeight: 600, margin: 0 }}>{m.job_title}</p>
-                    <p style={{ color: 'var(--muted)', fontSize: '0.82rem', margin: 0 }}>{m.soc_code}</p>
-                  </div>
-                  <span style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>
-                    {Math.round((m.score / maxScore) * 100)}% match
-                  </span>
+            {recommendations.matches?.map((m, i) => (
+              <div key={m.soc_code} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '10px 0', borderBottom: 'var(--border)' }}>
+                <span style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent)', minWidth: 24 }}>
+                  {i + 1}
+                </span>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontWeight: 600, margin: 0 }}>{m.job_title}</p>
+                  <p style={{ color: 'var(--muted)', fontSize: '0.82rem', margin: 0 }}>{m.soc_code}</p>
                 </div>
-              ))
-            })()}
+                <span style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>
+                  {(m.score * 100).toFixed(1)}% similarity
+                </span>
+              </div>
+            ))}
           </div>
           {fetchError && <p style={{ color: 'var(--danger)', marginTop: 12, fontSize: '0.9rem' }}>{fetchError}</p>}
           <button className="btn-secondary" type="button" style={{ marginTop: 20 }} onClick={runRecommender} disabled={fetching}>
