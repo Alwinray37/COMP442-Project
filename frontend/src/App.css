@@ -618,11 +618,51 @@
   font-weight: 800;
 }
 
+.recommendation-title {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.recommendation-title:hover {
+  color: var(--purple);
+}
+
+.recommendation-chevron {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-right: 3px solid var(--purple);
+  border-bottom: 3px solid var(--purple);
+  transform: rotate(45deg) translateY(-2px);
+  transition: transform 0.15s;
+}
+
+.recommendation-chevron.is-open {
+  transform: rotate(225deg) translate(-2px, -2px);
+}
+
 .recommendation-score {
   color: var(--accent-dark);
   font-size: 0.85rem;
   font-weight: 700;
   white-space: nowrap;
+}
+
+.recommendation-description {
+  max-width: 720px;
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.55;
 }
 
 .tag-list {

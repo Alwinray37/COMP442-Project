@@ -15,6 +15,7 @@ export default function Profile() {
   const navigate = useNavigate()
   const [data, setData] = useState(() => readJson('userProfile'))
   const [recommendations, setRecommendations] = useState(() => readJson('recommendations'))
+  const [expandedDescriptions, setExpandedDescriptions] = useState({})
   const [fetching, setFetching] = useState(false)
   const [fetchError, setFetchError] = useState('')
 
@@ -69,6 +70,13 @@ export default function Profile() {
     setData(null)
     setRecommendations(null)
     navigate('/intake')
+  }
+
+  const toggleDescription = (socCode) => {
+    setExpandedDescriptions((prev) => ({
+      ...prev,
+      [socCode]: !prev[socCode],
+    }))
   }
 
   if (!data) return null
@@ -175,10 +183,28 @@ export default function Profile() {
               <div className="recommendation-row" key={m.soc_code}>
                 <span className="recommendation-rank">{i + 1}</span>
                 <div style={{ flex: 1 }}>
-                  <p style={{ fontWeight: 600, margin: 0 }}>{m.job_title}</p>
+                  <button
+                    className="recommendation-title"
+                    type="button"
+                    onClick={() => toggleDescription(m.soc_code)}
+                    aria-expanded={Boolean(expandedDescriptions[m.soc_code])}
+                  >
+                    {m.job_title}
+                    {m.description && (
+                      <span
+                        className={`recommendation-chevron${expandedDescriptions[m.soc_code] ? ' is-open' : ''}`}
+                        aria-hidden="true"
+                      />
+                    )}
+                  </button>
                   <p style={{ color: 'var(--muted)', fontSize: '0.82rem', margin: 0 }}>
                     O*NET-SOC {m.soc_code}
                   </p>
+                  {m.description && expandedDescriptions[m.soc_code] && (
+                    <p className="recommendation-description">
+                      {m.description}
+                    </p>
+                  )}
                 </div>
                 <span className="recommendation-score">
                   {(m.score * 100).toFixed(1)}% similarity

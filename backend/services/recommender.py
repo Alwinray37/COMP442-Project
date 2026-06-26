@@ -114,6 +114,7 @@ def predict_job_titles(user_text, top_k=10, category_count=3, confidence_thresho
             {
                 "soc_code": subset_profiles.iloc[i]['O*NET-SOC Code'],
                 "job_title": subset_profiles.iloc[i]['Title'],
+                "description": subset_profiles.iloc[i].get('Description', ''),
                 "score": round(float(sims[i]), 4),
             }
             for i in top_indices

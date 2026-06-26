@@ -53,12 +53,12 @@ def preprocess_onet():
         .rename(columns={'Element Name': 'profile_text'})
     )
 
-    # Join occupation titles from Occupation Data
-    occ = pd.read_excel(ONET_OCCUPATION_XLSX)[['O*NET-SOC Code', 'Title']]
+    # Join occupation titles and descriptions from Occupation Data
+    occ = pd.read_excel(ONET_OCCUPATION_XLSX)[['O*NET-SOC Code', 'Title', 'Description']]
     profiles = profiles.merge(occ, on='O*NET-SOC Code', how='left')
 
     profiles['profile_text'] = profiles['profile_text'].apply(clean_text)
-    profiles = profiles[['O*NET-SOC Code', 'Title', 'profile_text']]
+    profiles = profiles[['O*NET-SOC Code', 'Title', 'Description', 'profile_text']]
     profiles.to_csv(ONET_PROFILES_CSV, index=False)
     print(f"O*NET: {len(profiles)} occupation profiles saved to data/processed/onet_profiles.csv")
 
