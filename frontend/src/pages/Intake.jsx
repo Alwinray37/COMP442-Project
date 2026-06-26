@@ -1,55 +1,18 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import * as pdfjsLib from 'pdfjs-dist'
+import AppNav from '../components/AppNav.jsx'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.mjs',
   import.meta.url
 ).toString()
 
-const emptyJob = { title: '', company: '', location: '', dateFrom: '', dateTo: '', description: '', skills: [] }
-const emptyEducation = { school: '', degree: '', location: '', dateFrom: '', dateTo: '', details: '' }
-const emptyProject = { name: '', role: '', link: '', dateFrom: '', dateTo: '', description: '', skills: [] }
-const emptyProfile = { fullName: '', email: '', phone: '', location: '', headline: '', summary: '', links: '' }
+const emptyJob = { title: '', description: '', skills: [] }
+const emptyEducation = { degree: '', details: '' }
+const emptyProfile = { headline: '', summary: '' }
 
 // Best-effort extraction helpers
-function toTitleCase(str) {
-  return str.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())
-}
-
-function extractEmail(text) {
-  const m = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/)
-  return m ? m[0] : ''
-}
-
-function extractPhone(text) {
-  const m = text.match(/(\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/)
-  return m ? m[0] : ''
-}
-
-function extractName(text) {
-  // All-caps name at very start, ends at first double space or pipe
-  const m = text.slice(0, 150).match(/^([A-Z][A-Z\s]{2,40?})(?:\s{2,}|\|)/)
-  if (m) return toTitleCase(m[1].trim())
-  return ''
-}
-
-function extractLocation(text) {
-  // Skip past the all-caps name block, then find "Title Case City, ST"
-  const afterName = text.slice(0, 300).replace(/^[A-Z\s]{3,40?}\s{2,}/, '')
-  const m = afterName.match(/([A-Z][a-z]+(?:\s[A-Z][a-z]+)*,\s*[A-Z]{2})\b/)
-  return m ? m[1].trim() : ''
-}
-
-function extractLinks(text) {
-  const lines = []
-  const linkedin = text.match(/LinkedIn[:\s]+([^\s|]+)/i)
-  const github = text.match(/GitHub[:\s]+([^\s|]+)/i)
-  if (linkedin) lines.push(`LinkedIn: ${linkedin[1]}`)
-  if (github) lines.push(`GitHub: ${github[1]}`)
-  return lines.join('\n')
-}
-
 function extractExperience(text) {
   const section = text.match(/EXPERIENCE([\s\S]{0,3000}?)(?:EDUCATION|PROJECTS|SKILLS|CERTIFICATIONS|REFERENCES|$)/i)
   if (!section) return []
@@ -62,28 +25,18 @@ function extractExperience(text) {
     if (lines.length < 2) continue
 
     const title = lines[0] || ''
-    const dateLine = lines.find((l) => /\d{4}/.test(l) && /(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|June|July|August|September|October|November|December|Present)/i.test(l))
-    const companyLine = lines.find((l) => l !== title && l !== dateLine && !l.startsWith('●') && l.length > 2)
     const descLines = lines.filter((l) => l.startsWith('●')).map((l) => l.replace(/^●\s*/, ''))
 
-    // Parse company and location from something like "Acme Corp   Los Angeles, CA"
-    const companyParts = (companyLine || '').split(/\s{2,}/)
-    const company = companyParts[0] || ''
-    const location = companyParts[1] || ''
-
-    if (!title && !company) continue
+    if (!title && descLines.length === 0) continue
 
     jobs.push({
       title: title.trim(),
-      company: company.trim(),
-      location: location.trim(),
-      dates: dateLine ? dateLine.trim() : '',
       description: descLines.join(' '),
       skills: [],
     })
   }
 
-  return jobs.length > 0 ? jobs : [{ title: '', company: '', location: '', dates: '', description: '', skills: [] }]
+  return jobs.length > 0 ? jobs : [{ ...emptyJob }]
 }
 
 function extractEducation(text) {
@@ -107,15 +60,13 @@ function extractEducation(text) {
       continue
     }
 
-    const school = schoolRaw.split(/\s*–/)[0].trim()
-    const location = parts.find((p) => /^[A-Z][a-zA-Z\s]+,\s*[A-Z]{2}$/.test(p)) || ''
     const degree = parts.find((p) => /bachelor|master|associate/i.test(p)) || ''
-    const dateRange = parts.find((p) => /\b(19|20)\d{2}\b/.test(p)) || ''
+    const details = parts.filter((p) => p !== schoolRaw && p !== degree).join(' ')
 
-    edu.push({ school, location, degree, dateFrom: '', dateTo: '', dates: dateRange, details: '' })
+    edu.push({ degree, details })
   }
 
-  return edu.length > 0 ? edu : [{ school: '', degree: '', location: '', dateFrom: '', dateTo: '', details: '' }]
+  return edu.length > 0 ? edu : [{ ...emptyEducation }]
 }
 
 function extractSkills(text) {
@@ -151,11 +102,11 @@ export default function Intake() {
   const [parseError, setParseError] = useState('')
 
   const saved = (() => { try { return JSON.parse(localStorage.getItem('userProfile') || 'null') } catch { return null } })()
+  const hasSavedProfile = Boolean(saved)
 
   const [profile, setProfile] = useState(saved?.profile ?? { ...emptyProfile })
   const [jobs, setJobs] = useState(saved?.experience ?? [{ ...emptyJob }])
   const [education, setEducation] = useState(saved?.education ?? [{ ...emptyEducation }])
-  const [projects, setProjects] = useState(saved?.projects ?? [{ ...emptyProject }])
   const [skills, setSkills] = useState(saved?.skills ?? [])
   const [interests, setInterests] = useState(saved?.interests ?? [])
   const [rawResumeText, setRawResumeText] = useState(saved?.rawResumeText ?? '')
@@ -185,15 +136,6 @@ export default function Intake() {
         fullText += content.items.map((item) => item.str).join(' ') + '\n'
       }
       setRawResumeText(fullText)
-      // Pre-fill what we can extract
-      setProfile((prev) => ({
-        ...prev,
-        fullName: prev.fullName || extractName(fullText),
-        email: prev.email || extractEmail(fullText),
-        phone: prev.phone || extractPhone(fullText),
-        location: prev.location || extractLocation(fullText),
-        links: prev.links || extractLinks(fullText),
-      }))
       setSkills((prev) => {
         const extracted = extractSkills(fullText)
         return [...new Set([...prev, ...extracted])]
@@ -202,7 +144,7 @@ export default function Intake() {
       setEducation(extractEducation(fullText))
       // Switch to manual so user can review and fill in the rest
       setEntryMode('manual')
-    } catch (err) {
+    } catch {
       setParseError('Could not parse this PDF. Please fill in your info manually.')
     } finally {
       setParsing(false)
@@ -223,7 +165,6 @@ export default function Intake() {
     setProfile({ ...emptyProfile })
     setJobs([{ ...emptyJob }])
     setEducation([{ ...emptyEducation }])
-    setProjects([{ ...emptyProject }])
     setSkills([])
     setInterests([])
     setRawResumeText('')
@@ -244,11 +185,6 @@ export default function Intake() {
       if (e.degree) parts.push(e.degree)
       if (e.details) parts.push(e.details)
     })
-    projects.forEach((p) => {
-      if (p.name) parts.push(p.name)
-      if (p.description) parts.push(p.description)
-      if (p.skills?.length) parts.push(p.skills.join(' '))
-    })
     if (rawResumeText) parts.push(rawResumeText)
     return parts.join(' ')
   }
@@ -258,7 +194,6 @@ export default function Intake() {
       profile,
       experience: jobs,
       education,
-      projects,
       skills,
       interests,
       rawResumeText,
@@ -278,7 +213,7 @@ export default function Intake() {
       if (!res.ok) throw new Error(`Server error: ${res.status}`)
       const data = await res.json()
       localStorage.setItem('recommendations', JSON.stringify(data))
-    } catch (err) {
+    } catch {
       setSubmitError('Could not reach the backend. Make sure it is running at localhost:5001.')
     } finally {
       setSubmitting(false)
@@ -288,30 +223,28 @@ export default function Intake() {
 
   return (
     <main className="app-shell intake-shell">
-      <nav className="navbar">
-        <Link className="brand" to="/">COMP442 Project – Job Recommender</Link>
-        <div className="nav-links">
-          <Link to="/">Home</Link>
+      <AppNav
+        actions={(
           <button className="btn-danger nav-button" type="button" onClick={clearSavedInfo}>
             Clear saved info
           </button>
-          <Link className="nav-action" to="/intake">Intake</Link>
-        </div>
-      </nav>
+        )}
+      />
 
       <header className="intake-hero">
         <div className="card hero-panel">
-          <p className="eyebrow">Resume intake</p>
-          <h1>Build your profile.</h1>
+          <p className="eyebrow">Step 1 of 2 · Intake</p>
+          <h1>Build your recommender profile.</h1>
           <p className="hero-copy">
-            Enter your background and we'll recommend job titles that fit you. The more you fill in, the better the results.
+            Add the skills, interests, education, and experience the model should use. Saving here refreshes the recommendations page.
           </p>
         </div>
         <div className="card status-card">
-          <p className="card-label">Status</p>
+          <p className="card-label">Current page</p>
+          <h2>Editing intake</h2>
           {parsing && <p>Parsing PDF…</p>}
-          {!parsing && rawResumeText && <p className="file-meta">✓ PDF parsed — review and complete your profile below.</p>}
-          {!parsing && !rawResumeText && <p>{entryMode === 'pdf' ? 'Upload a PDF to get started.' : 'Fill in as many sections as you can for the best recommendations.'}</p>}
+          {!parsing && rawResumeText && <p className="file-meta">PDF parsed. Review the fields, then save again.</p>}
+          {!parsing && !rawResumeText && <p>{entryMode === 'pdf' ? 'Upload a PDF to prefill the intake.' : 'Update fields, then save to view job matches.'}</p>}
           {resumePdf && !parsing && <p style={{ fontSize: '0.85rem', color: 'var(--muted)', marginTop: 6 }}>{resumePdf.name}</p>}
         </div>
       </header>
@@ -362,14 +295,10 @@ export default function Intake() {
         <form className="intake-form" onSubmit={(e) => e.preventDefault()}>
 
           {/* Profile */}
-          <FormSection label="Basics" title="Personal info">
+          <FormSection label="Background" title="Career background">
             <div className="form-grid">
-              <TextField label="Full name" value={profile.fullName} onChange={(v) => updateProfile('fullName', v)} placeholder="Jane Smith" />
-              <TextField label="Email" type="email" value={profile.email} onChange={(v) => updateProfile('email', v)} placeholder="jane@email.com" />
-              <TextField label="Phone" value={profile.phone} onChange={(v) => updateProfile('phone', v)} placeholder="+1 (514) 000-0000" />
-              <TextField label="Location" value={profile.location} onChange={(v) => updateProfile('location', v)} placeholder="Montreal, QC" />
-              <TextField label="Headline" value={profile.headline} onChange={(v) => updateProfile('headline', v)} placeholder="Recent CS graduate with a focus on data" wide />
-              <TextArea label="Summary" value={profile.summary} onChange={(v) => updateProfile('summary', v)} placeholder="A short paragraph about your background, goals, and what makes you a strong candidate." />
+              <TextField label="Current goal or field" value={profile.headline} onChange={(v) => updateProfile('headline', v)} placeholder="Data analysis, healthcare, education, software, design..." wide />
+              <TextArea label="Background summary" value={profile.summary} onChange={(v) => updateProfile('summary', v)} placeholder="Summarize your experience, strengths, coursework, and the kind of work you want." />
             </div>
           </FormSection>
 
@@ -410,11 +339,7 @@ export default function Intake() {
                   )}
                 </div>
                 <div className="form-grid">
-                  <TextField label="Job title" value={job.title} onChange={(v) => updateItem(setJobs, index, 'title', v)} placeholder="Software Developer" />
-                  <TextField label="Company" value={job.company} onChange={(v) => updateItem(setJobs, index, 'company', v)} placeholder="Acme Corp" />
-                  <TextField label="Location" value={job.location} onChange={(v) => updateItem(setJobs, index, 'location', v)} placeholder="Montreal, QC" />
-                  <TextField label="From" type="month" value={job.dateFrom} onChange={(v) => updateItem(setJobs, index, 'dateFrom', v)} />
-                  <TextField label="To (leave blank if current)" type="month" value={job.dateTo} onChange={(v) => updateItem(setJobs, index, 'dateTo', v)} />
+                  <TextField label="Role or activity" value={job.title} onChange={(v) => updateItem(setJobs, index, 'title', v)} placeholder="Software developer, tutor, cashier, lab assistant..." wide />
                   <TextArea label="Description" value={job.description} onChange={(v) => updateItem(setJobs, index, 'description', v)} placeholder="Describe your responsibilities, achievements, and impact in this role." />
                   <div className="field field--wide">
                     <span>Skills used</span>
@@ -437,7 +362,7 @@ export default function Intake() {
             {education.map((item, index) => (
               <div className="repeat-card" key={index}>
                 <div className="repeat-header">
-                  <h3>School {index + 1}{item.school ? ` — ${item.school}` : ''}</h3>
+                  <h3>Education {index + 1}{item.degree ? ` — ${item.degree}` : ''}</h3>
                   {education.length > 1 && (
                     <button className="btn-danger" type="button" onClick={() => removeItem(setEducation, index)}>
                       Remove
@@ -445,12 +370,8 @@ export default function Intake() {
                   )}
                 </div>
                 <div className="form-grid">
-                  <TextField label="School / University" value={item.school} onChange={(v) => updateItem(setEducation, index, 'school', v)} placeholder="Concordia University" />
-                  <TextField label="Degree / Program" value={item.degree} onChange={(v) => updateItem(setEducation, index, 'degree', v)} placeholder="B.Sc. Computer Science" />
-                  <TextField label="Location" value={item.location} onChange={(v) => updateItem(setEducation, index, 'location', v)} placeholder="Montreal, QC" />
-                  <TextField label="From" type="month" value={item.dateFrom} onChange={(v) => updateItem(setEducation, index, 'dateFrom', v)} />
-                  <TextField label="To" type="month" value={item.dateTo} onChange={(v) => updateItem(setEducation, index, 'dateTo', v)} />
-                  <TextArea label="Details" value={item.details} onChange={(v) => updateItem(setEducation, index, 'details', v)} placeholder="Relevant coursework, honours, GPA, clubs, or achievements." />
+                  <TextField label="Degree / Program" value={item.degree} onChange={(v) => updateItem(setEducation, index, 'degree', v)} placeholder="B.Sc. Computer Science, Data Analytics certificate..." wide />
+                  <TextArea label="Details" value={item.details} onChange={(v) => updateItem(setEducation, index, 'details', v)} placeholder="Relevant coursework, projects, clubs, or academic strengths." />
                 </div>
               </div>
             ))}
@@ -459,46 +380,12 @@ export default function Intake() {
             </button>
           </FormSection>
 
-          {/* Projects */}
-          <FormSection label="Projects" title="Projects">
-            {projects.map((project, index) => (
-              <div className="repeat-card" key={index}>
-                <div className="repeat-header">
-                  <h3>Project {index + 1}{project.name ? ` — ${project.name}` : ''}</h3>
-                  {projects.length > 1 && (
-                    <button className="btn-danger" type="button" onClick={() => removeItem(setProjects, index)}>
-                      Remove
-                    </button>
-                  )}
-                </div>
-                <div className="form-grid">
-                  <TextField label="Project name" value={project.name} onChange={(v) => updateItem(setProjects, index, 'name', v)} placeholder="Job Recommender System" />
-                  <TextField label="Your role" value={project.role} onChange={(v) => updateItem(setProjects, index, 'role', v)} placeholder="Lead Developer" />
-                  <TextField label="Link" value={project.link} onChange={(v) => updateItem(setProjects, index, 'link', v)} placeholder="github.com/jane/project" />
-                  <TextField label="Date" type="month" value={project.dateFrom} onChange={(v) => updateItem(setProjects, index, 'dateFrom', v)} />
-                  <TextArea label="Description" value={project.description} onChange={(v) => updateItem(setProjects, index, 'description', v)} placeholder="What did you build, what problem did it solve, and what was your contribution?" />
-                  <div className="field field--wide">
-                    <span>Technologies / skills</span>
-                    <TagsInput
-                      tags={project.skills}
-                      onChange={(v) => updateItem(setProjects, index, 'skills', v)}
-                      placeholder="e.g. Python, React, Machine Learning"
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-            <button className="btn-secondary" type="button" style={{ width: 'fit-content' }} onClick={() => setProjects((p) => [...p, { ...emptyProject }])}>
-              + Add project
-            </button>
-          </FormSection>
-
           {/* Submit bar */}
           <div className="card submit-bar">
             <p>Your profile is saved locally and sent to the job recommender when you submit.</p>
             {submitError && <p style={{ color: 'var(--danger)', fontSize: '0.9rem' }}>{submitError}</p>}
             <button className="btn-primary" type="button" onClick={handleSubmit} disabled={submitting}>
-              {submitting ? 'Getting recommendations…' : 'Save & see recommendations →'}
+              {submitting ? 'Getting recommendations…' : hasSavedProfile ? 'Update & refresh recommendations →' : 'Save & see recommendations →'}
             </button>
           </div>
         </form>

@@ -1,38 +1,28 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import AppNav from '../components/AppNav.jsx'
 
-function formatDate(ym) {
-  if (!ym) return ''
-  const [year, month] = ym.split('-')
-  const d = new Date(year, parseInt(month) - 1)
-  return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-}
-
-function formatRange(from, to) {
-  const f = formatDate(from)
-  const t = to ? formatDate(to) : 'Present'
-  if (!f && !t) return ''
-  if (!f) return t
-  return `${f} – ${t}`
+function readJson(key) {
+  try {
+    const value = localStorage.getItem(key)
+    return value ? JSON.parse(value) : null
+  } catch {
+    return null
+  }
 }
 
 export default function Profile() {
   const navigate = useNavigate()
-  const [data, setData] = useState(null)
-  const [recommendations, setRecommendations] = useState(null)
+  const [data, setData] = useState(() => readJson('userProfile'))
+  const [recommendations, setRecommendations] = useState(() => readJson('recommendations'))
   const [fetching, setFetching] = useState(false)
   const [fetchError, setFetchError] = useState('')
 
   useEffect(() => {
-    const saved = localStorage.getItem('userProfile')
-    if (!saved) {
+    if (!data) {
       navigate('/intake')
-      return
     }
-    setData(JSON.parse(saved))
-    const recs = localStorage.getItem('recommendations')
-    if (recs) setRecommendations(JSON.parse(recs))
-  }, [navigate])
+  }, [data, navigate])
 
   const runRecommender = async () => {
     const saved = localStorage.getItem('userProfile')
@@ -51,11 +41,6 @@ export default function Profile() {
     profile.education?.forEach((e) => {
       if (e.degree) parts.push(e.degree)
       if (e.details) parts.push(e.details)
-    })
-    profile.projects?.forEach((p) => {
-      if (p.name) parts.push(p.name)
-      if (p.description) parts.push(p.description)
-      if (p.skills?.length) parts.push(p.skills.join(' '))
     })
     if (profile.rawResumeText) parts.push(profile.rawResumeText)
 
@@ -88,39 +73,28 @@ export default function Profile() {
 
   if (!data) return null
 
-  const { profile, experience, education, projects, skills, interests } = data
+  const { profile, experience, education, skills, interests } = data
 
   return (
     <main className="app-shell profile-shell">
-      <nav className="navbar">
-        <Link className="brand" to="/">COMP442 Project – Job Recommender</Link>
-        <div className="nav-links">
-          <Link to="/intake">Edit profile</Link>
+      <AppNav
+        actions={(
           <button className="btn-danger nav-button" type="button" onClick={clearSavedInfo}>
             Clear saved info
           </button>
-          <button
-            className="nav-action"
-            type="button"
-            style={{ border: 'none', cursor: 'pointer' }}
-            onClick={runRecommender}
-            disabled={fetching}
-          >
-            {fetching ? 'Running…' : 'Get recommendations →'}
-          </button>
-        </div>
-      </nav>
+        )}
+      />
 
       {/* Header */}
       <div className="card panel profile-header">
         <div>
-          <p className="card-label">Your profile</p>
-          <h1 className="profile-name">{profile.fullName || 'No name entered'}</h1>
+          <p className="card-label">Step 2 of 2 · Recommendations</p>
+          <h1 className="profile-name">{recommendations ? 'Review your job matches' : 'Ready to run recommendations'}</h1>
           <div className="profile-meta">
             {profile.headline && <span>{profile.headline}</span>}
-            {profile.location && <span>📍 {profile.location}</span>}
-            {profile.email && <span>{profile.email}</span>}
-            {profile.phone && <span>{profile.phone}</span>}
+            <span>{experience?.filter((j) => j.title || j.description).length || 0} experience entries</span>
+            <span>{education?.filter((e) => e.degree || e.details).length || 0} education entries</span>
+            <span>{skills?.length || 0} skills</span>
           </div>
           {profile.summary && (
             <p style={{ marginTop: 16, color: 'var(--muted)', lineHeight: 1.7, maxWidth: 680 }}>
@@ -128,10 +102,15 @@ export default function Profile() {
             </p>
           )}
         </div>
-        <div style={{ marginTop: 20 }}>
-          <Link className="btn-secondary" to="/intake" style={{ display: 'inline-flex' }}>
-            Edit profile
+        <div className="profile-actions">
+          <Link className="btn-secondary" to="/intake">
+            Edit intake
           </Link>
+          {!recommendations && (
+            <button className="btn-primary" type="button" onClick={runRecommender} disabled={fetching}>
+              {fetching ? 'Running…' : 'Run recommendations'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -156,13 +135,12 @@ export default function Profile() {
       )}
 
       {/* Experience */}
-      {experience?.some((j) => j.title || j.company) && (
+      {experience?.some((j) => j.title || j.description) && (
         <div className="card panel profile-section">
           <h3>Work experience</h3>
-          {experience.filter((j) => j.title || j.company).map((job, i) => (
+          {experience.filter((j) => j.title || j.description).map((job, i) => (
             <div className="profile-item" key={i}>
-              <h4>{job.title}{job.company ? ` — ${job.company}` : ''}</h4>
-              <p>{[job.location, formatRange(job.dateFrom, job.dateTo)].filter(Boolean).join(' · ')}</p>
+              {job.title && <h4>{job.title}</h4>}
               {job.description && <p style={{ marginTop: 6 }}>{job.description}</p>}
               {job.skills?.length > 0 && (
                 <div className="tag-list" style={{ marginTop: 8 }}>
@@ -175,57 +153,15 @@ export default function Profile() {
       )}
 
       {/* Education */}
-      {education?.some((e) => e.school || e.degree) && (
+      {education?.some((e) => e.degree || e.details) && (
         <div className="card panel profile-section">
           <h3>Education</h3>
-          {education.filter((e) => e.school || e.degree).map((item, i) => (
+          {education.filter((e) => e.degree || e.details).map((item, i) => (
             <div className="profile-item" key={i}>
-              <h4>{item.degree}{item.school ? ` — ${item.school}` : ''}</h4>
-              <p>{[item.location, formatRange(item.dateFrom, item.dateTo)].filter(Boolean).join(' · ')}</p>
+              {item.degree && <h4>{item.degree}</h4>}
               {item.details && <p style={{ marginTop: 6 }}>{item.details}</p>}
             </div>
           ))}
-        </div>
-      )}
-
-      {/* Projects */}
-      {projects?.some((p) => p.name) && (
-        <div className="card panel profile-section">
-          <h3>Projects</h3>
-          {projects.filter((p) => p.name).map((project, i) => (
-            <div className="profile-item" key={i}>
-              <h4>
-                {project.name}
-                {project.link && (
-                  <a
-                    href={project.link.startsWith('http') ? project.link : `https://${project.link}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{ marginLeft: 10, fontSize: '0.85rem', color: 'var(--accent)' }}
-                  >
-                    View →
-                  </a>
-                )}
-              </h4>
-              {project.role && <p>{project.role}</p>}
-              {project.description && <p style={{ marginTop: 6 }}>{project.description}</p>}
-              {project.skills?.length > 0 && (
-                <div className="tag-list" style={{ marginTop: 8 }}>
-                  {project.skills.map((s) => <span className="tag" key={s}>{s}</span>)}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Links */}
-      {profile.links && (
-        <div className="card panel profile-section">
-          <h3>Links</h3>
-          <p style={{ color: 'var(--muted)', whiteSpace: 'pre-line', fontSize: '0.92rem' }}>
-            {profile.links}
-          </p>
         </div>
       )}
 
@@ -234,26 +170,23 @@ export default function Profile() {
         <div className="card panel profile-section">
           <p className="card-label">Predicted field: {recommendations.category}</p>
           <h3>Your top job matches</h3>
-          <div style={{ marginTop: 16 }}>
+          <div className="recommendation-list">
             {recommendations.matches?.map((m, i) => (
-              <div key={m.soc_code} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '10px 0', borderBottom: 'var(--border)' }}>
-                <span style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent)', minWidth: 24 }}>
-                  {i + 1}
-                </span>
+              <div className="recommendation-row" key={m.soc_code}>
+                <span className="recommendation-rank">{i + 1}</span>
                 <div style={{ flex: 1 }}>
                   <p style={{ fontWeight: 600, margin: 0 }}>{m.job_title}</p>
-                  <p style={{ color: 'var(--muted)', fontSize: '0.82rem', margin: 0 }}>{m.soc_code}</p>
+                  <p style={{ color: 'var(--muted)', fontSize: '0.82rem', margin: 0 }}>
+                    O*NET-SOC {m.soc_code}
+                  </p>
                 </div>
-                <span style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>
+                <span className="recommendation-score">
                   {(m.score * 100).toFixed(1)}% similarity
                 </span>
               </div>
             ))}
           </div>
           {fetchError && <p style={{ color: 'var(--danger)', marginTop: 12, fontSize: '0.9rem' }}>{fetchError}</p>}
-          <button className="btn-secondary" type="button" style={{ marginTop: 20 }} onClick={runRecommender} disabled={fetching}>
-            {fetching ? 'Running…' : 'Re-run recommendations'}
-          </button>
         </div>
       ) : (
         <div className="card panel" style={{ textAlign: 'center' }}>
