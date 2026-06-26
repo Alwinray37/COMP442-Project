@@ -1,6 +1,24 @@
 # COMP442 Project
 
-Job title recommender system for COMP442. Given a user's resume or inputted skills and experience, the model recommends the most suitable job titles.
+COMP442 ML class project -- Job recommender system. User uploads resume or inputs experience and education items, skills and interests, and our program will recommend job titles which best fit their background. 
+
+## How It Works
+The system is built on a supervised text classification pipeline trained on real-world resume data.
+
+1. Data Collection & Preprocessing
+We sourced a dataset of 2,484 labeled resumes across 24 broad job categories including Healthcare, Finance, Engineering, Education, Sales, Arts, and more. The resume text is cleaned — lowercased, punctuation removed — and duplicate records are dropped before training.
+
+2. Feature Extraction
+Each resume is converted into a numerical representation using TF-IDF (Term Frequency–Inverse Document Frequency). This technique captures which words and phrases are most significant in a resume relative to the entire dataset, turning raw text into a vector the model can learn from.
+
+3. Model Training
+A Logistic Regression classifier is trained on the TF-IDF vectors using the job category labels as targets. The model learns the statistical relationship between the language used in a resume and the job title it belongs to. Training uses an 80/20 train-test split and is evaluated using accuracy and a classification report.
+
+4. Occupation Matching with O*NET
+After predicting a broad job category, the system cross-references the O*NET occupational database — which contains over 1,000 standardized occupations with detailed skill, knowledge, ability, and work activity profiles — to surface specific job titles within the predicted field. This allows the system to recommend precise, industry-recognized roles.
+
+5. User Interface
+Users interact through a React web application where they can either upload a PDF resume or manually enter their skills, experience, and education. The frontend sends the input to a Flask REST API, which runs it through the trained model and returns a ranked list of job title recommendations with confidence scores.
 
 ## Project Structure
 
