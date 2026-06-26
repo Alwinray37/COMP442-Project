@@ -1,8 +1,12 @@
 backend/venv/
 venv/
+.venv/
+.cache/
+.claude/
 
 __pycache__/
 *.pyc
+models/*.pkl
 
 *.csv
 *.xlsx

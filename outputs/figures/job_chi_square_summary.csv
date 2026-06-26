@@ -1,0 +1,11 @@
+categorical_feature_pair,chi_square_result,p_value,degrees_of_freedom,interpretation
+pay_period & formatted_work_type,395.928,0.0,15,Significant (p < 0.05)
+pay_period & application_type,292.9003,0.0,6,Significant (p < 0.05)
+pay_period & formatted_experience_level,220.984,0.0,15,Significant (p < 0.05)
+pay_period & work_type,395.928,0.0,15,Significant (p < 0.05)
+formatted_work_type & application_type,497.9244,0.0,12,Significant (p < 0.05)
+formatted_work_type & formatted_experience_level,1558.7142,0.0,30,Significant (p < 0.05)
+formatted_work_type & work_type,30000.0,0.0,36,Significant (p < 0.05)
+application_type & formatted_experience_level,444.5846,0.0,10,Significant (p < 0.05)
+application_type & work_type,497.9244,0.0,12,Significant (p < 0.05)
+formatted_experience_level & work_type,1558.7142,0.0,30,Significant (p < 0.05)

@@ -1,112 +1,121 @@
-import pandas as pd
+import pickle
 import re
-from sklearn.feature_extraction.text import TfidfVectorizer
+import sys
+from pathlib import Path
+import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 
-from services.skill_rules import skill_aliases, transfer_skill_keywords
+sys.path.append(str(Path(__file__).resolve().parents[2]))
 
-# Load O*NET Database into Memory ONCE
-print("Loading O*NET Excel databases into memory...")
-try:
-    occupations_df = pd.read_excel("../Occupation Data.xlsx")
-    software_df = pd.read_excel("../Software Skills.xlsx")
-    transferable_df = pd.read_excel("../Transferable Skills.xlsx")
-except Exception as e:
-    print(f"Warning: Unable to load O*NET Excel files. Error: {e}")
-    occupations_df, software_df, transferable_df = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+from project_paths import LOGISTIC_CLASSIFIER_PATH, ONET_PROFILES_CSV, TFIDF_VECTORIZER_PATH
 
-# Matching TF-IDF with Cosine Similarity (AI Core)
-def recommend(resume_text, job_descriptions_list, top_k=5):
-    documents = [resume_text] + job_descriptions_list
-    
-    vectorizer = TfidfVectorizer(stop_words='english')
-    tfidf_matrix = vectorizer.fit_transform(documents)
-    
-    similarities = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:]).flatten()
-    top_indices = similarities.argsort()[-top_k:][::-1]
-    
-    results = [{"job_index": int(i), "match_score": float(similarities[i])} for i in top_indices]
-    return results
+_vectorizer = None
+_classifier = None
+_onet_profiles = None
+_onet_tfidf = None
 
-# O*NET Skill Matching Logic (Extended Functionality)
-def build_skills_database():
-    if software_df.empty or transferable_df.empty:
-        return []
-        
-    tech_skills = software_df['Workplace Example'].dropna().unique().tolist()
-    soft_skills = transferable_df['Element Name'].dropna().unique().tolist()
-    
-    master_skills_list = tech_skills + soft_skills
-    master_skills_list = [str(skill).lower() for skill in master_skills_list]
-    return master_skills_list
-
-
-def count_skills_in_resume(resume_text, master_skills_list):
-    resume_text_lower = resume_text.lower()
-    matched_skills = set() 
-    
-    for skill in master_skills_list:
-        if not skill: continue
-        pattern = r'\b' + re.escape(skill) + r'\b'
-        if re.search(pattern, resume_text_lower):
-            matched_skills.add(skill)
-            
-    for real_skill, aliases in skill_aliases.items():
-        for alias in aliases:
-            pattern = r'\b' + re.escape(alias) + r'\b'
-            if re.search(pattern, resume_text_lower):
-                matched_skills.add(real_skill)
-                break 
-                
-    for real_skill, keywords in transfer_skill_keywords.items():
-        for keyword in keywords:
-            pattern = r'\b' + re.escape(keyword) + r'\b'
-            if re.search(pattern, resume_text_lower):
-                matched_skills.add(real_skill)
-                break
-                
-    return {
-        "skill_match_count": len(matched_skills),
-        "found_skills": list(matched_skills)
-    }
+# Maps resume categories to O*NET SOC major group prefixes
+CATEGORY_SOC_MAP = {
+    'ACCOUNTANT':           ['13'],
+    'ADVOCATE':             ['23'],
+    'AGRICULTURE':          ['45'],
+    'APPAREL':              ['51', '27'],
+    'ARTS':                 ['27', '25'],
+    'AUTOMOBILE':           ['49', '51'],
+    'AVIATION':             ['53'],
+    'BANKING':              ['13', '43'],
+    'BPO':                  ['43', '13'],
+    'BUSINESS-DEVELOPMENT': ['11', '13'],
+    'CHEF':                 ['35'],
+    'CONSTRUCTION':         ['47', '17'],
+    'CONSULTANT':           ['13', '11'],
+    'DESIGNER':             ['27'],
+    'DIGITAL-MEDIA':        ['27', '15'],
+    'ENGINEERING':          ['17', '15'],
+    'FINANCE':              ['13'],
+    'FITNESS':              ['29', '39'],
+    'HEALTHCARE':           ['29', '31'],
+    'HR':                   ['13', '43'],
+    'INFORMATION-TECHNOLOGY': ['15'],
+    'PUBLIC-RELATIONS':     ['27', '13'],
+    'SALES':                ['41'],
+    'TEACHER':              ['25'],
+}
 
 
-def analyze_skill_gap(target_job_title, user_found_skills):
+def _load_models():
+    global _vectorizer, _classifier, _onet_profiles, _onet_tfidf
+    if _vectorizer is None:
+        with open(TFIDF_VECTORIZER_PATH, 'rb') as f:
+            _vectorizer = pickle.load(f)
+        with open(LOGISTIC_CLASSIFIER_PATH, 'rb') as f:
+            _classifier = pickle.load(f)
+    if _onet_profiles is None:
+        _onet_profiles = pd.read_csv(ONET_PROFILES_CSV)
+        _onet_tfidf = _vectorizer.transform(_onet_profiles['profile_text'].fillna(''))
 
-    if occupations_df.empty or software_df.empty:
-        return {"error": "O*NET database is not loaded in memory."}
 
-    try:
-        matched_jobs = occupations_df[occupations_df['Title'].str.contains(target_job_title, case=False, na=False)]
-        
-        if matched_jobs.empty:
-            matched_jobs = occupations_df[occupations_df['Description'].str.contains(target_job_title, case=False, na=False)]
-            
-        if matched_jobs.empty:
-            first_word = target_job_title.split()[0] 
-            matched_jobs = occupations_df[occupations_df['Title'].str.contains(first_word, case=False, na=False)]
+def _clean(text):
+    return re.sub(r'\W+', ' ', text.lower()).strip()
 
-        if matched_jobs.empty:
-            return {"error": f"Could not find standard O*NET requirements for '{target_job_title}'"}
 
-        job_code = matched_jobs.iloc[0]['O*NET-SOC Code']
-        official_title = matched_jobs.iloc[0]['Title']
+def predict_job_titles(user_text, top_k=5, category_count=3, confidence_threshold=0.45, candidate_ratio=0.75):
+    _load_models()
+    text_clean = _clean(user_text)
+    tfidf = _vectorizer.transform([text_clean])
 
-        job_specific_software = software_df[software_df['O*NET-SOC Code'] == job_code]
-        required_skills = job_specific_software['Workplace Example'].dropna().unique().tolist()
-        required_skills = [skill.lower() for skill in required_skills]
-
-        user_skills_lower = [skill.lower() for skill in user_found_skills]
-        
-        missing_skills = [skill for skill in required_skills if skill not in user_skills_lower]
-
-        return {
-            "official_job_title": official_title,
-            "total_required_skills": len(required_skills),
-            "missing_skill_count": len(missing_skills),
-            "recommended_skills_to_add": missing_skills[:10] 
+    # Stage 1 — predict broad category
+    probs = _classifier.predict_proba(tfidf)[0]
+    ranked_category_indices = probs.argsort()[::-1]
+    category = _classifier.classes_[ranked_category_indices[0]]
+    category_confidence = float(probs[ranked_category_indices[0]])
+    category_candidates = [
+        {
+            "category": _classifier.classes_[i],
+            "confidence": round(float(probs[i]), 4),
         }
+        for i in ranked_category_indices[:category_count]
+    ]
 
-    except Exception as e:
-        print(f"Error analyzing skill gap: {e}")
-        return {"error": str(e)}
+    # Stage 2 — filter O*NET to likely SOC groups, rank by cosine similarity
+    categories_for_matching = [category]
+    if category_confidence < confidence_threshold:
+        categories_for_matching = [
+            item["category"]
+            for item in category_candidates
+            if item["confidence"] >= round(category_confidence * candidate_ratio, 4)
+        ]
+
+    soc_prefixes = sorted({
+        prefix
+        for candidate in categories_for_matching
+        for prefix in CATEGORY_SOC_MAP.get(candidate, [])
+    })
+    if soc_prefixes:
+        mask = _onet_profiles['O*NET-SOC Code'].str[:2].isin(soc_prefixes)
+        subset_profiles = _onet_profiles[mask].reset_index(drop=True)
+        subset_tfidf = _onet_tfidf[_onet_profiles[mask].index]
+    else:
+        subset_profiles = _onet_profiles
+        subset_tfidf = _onet_tfidf
+
+    if subset_profiles.empty:
+        subset_profiles = _onet_profiles
+        subset_tfidf = _onet_tfidf
+
+    sims = cosine_similarity(tfidf, subset_tfidf)[0]
+    top_indices = sims.argsort()[-top_k:][::-1]
+
+    return {
+        "category": category,
+        "category_confidence": round(category_confidence, 4),
+        "category_candidates": category_candidates,
+        "matches": [
+            {
+                "soc_code": subset_profiles.iloc[i]['O*NET-SOC Code'],
+                "job_title": subset_profiles.iloc[i]['Title'],
+                "score": round(float(sims[i]), 4),
+            }
+            for i in top_indices
+        ]
+    }
