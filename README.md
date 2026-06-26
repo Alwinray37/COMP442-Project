@@ -18,7 +18,7 @@ Each resume and occupation profile is converted into a numerical representation 
 A Logistic Regression classifier is trained on the TF-IDF resume vectors using the 24 job category labels as targets. Training uses an 80/20 train-test split and is evaluated using accuracy and a classification report.
 
 4. **Occupation Matching with O\*NET**
-When a new resume is submitted, the classifier predicts its broad job category. The system then computes cosine similarity between the resume vector and all O\*NET occupation profiles within that category to surface the most relevant specific job titles.
+When a new resume is submitted, the classifier predicts its broad job category. The system then computes cosine similarity between the resume vector and O\*NET occupation profiles in the most likely SOC groups. If category confidence is low, it considers several likely categories to avoid over-filtering too early.
 
 5. **User Interface**
 Users interact through a React web application where they can either upload a PDF resume or manually enter their skills, experience, and education. The frontend sends the input to a Flask REST API, which runs it through the trained model and returns a ranked list of job title recommendations.
@@ -51,6 +51,7 @@ COMP442-Project/
       components/
   outputs/
     figures/                # generated charts and visualizations
+  project_paths.py          # shared filesystem paths for ML and backend code
   requirements.txt
 ```
 

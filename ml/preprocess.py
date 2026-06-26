@@ -1,11 +1,20 @@
 import pandas as pd
 import re
-import os
+import sys
+from pathlib import Path
 
-RAW = os.path.join(os.path.dirname(__file__), '../data/raw')
-PROCESSED = os.path.join(os.path.dirname(__file__), '../data/processed')
+sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-os.makedirs(PROCESSED, exist_ok=True)
+from project_paths import (
+    ONET_OCCUPATION_XLSX,
+    ONET_PROFILE_FILES,
+    ONET_PROFILES_CSV,
+    PROCESSED_DATA_DIR,
+    RESUME_CSV,
+    RESUMES_CLEAN_CSV,
+)
+
+PROCESSED_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def clean_text(text):
@@ -15,26 +24,18 @@ def clean_text(text):
 
 
 def preprocess_resumes():
-    df = pd.read_csv(os.path.join(RAW, 'Resume.csv'))
+    df = pd.read_csv(RESUME_CSV)
     df = df.drop_duplicates(subset='Resume_str')
     df = df.drop(columns=['Resume_html'])
     df['Resume_str'] = df['Resume_str'].apply(clean_text)
-    df.to_csv(os.path.join(PROCESSED, 'resumes_clean.csv'), index=False)
+    df.to_csv(RESUMES_CLEAN_CSV, index=False)
     print(f"Resumes: {len(df)} rows saved to data/processed/resumes_clean.csv")
 
 
 def preprocess_onet():
-    skill_files = [
-        'Essential Skills.xlsx',
-        'Knowledge.xlsx',
-        'Abilities.xlsx',
-        'Work Activities.xlsx',
-        'Work Styles.xlsx',
-    ]
-
     frames = []
-    for fname in skill_files:
-        df = pd.read_excel(os.path.join(RAW, fname))
+    for path in ONET_PROFILE_FILES:
+        df = pd.read_excel(path)
         # Work Styles has no Scale ID — include all rows
         if 'Scale ID' in df.columns:
             df = df[df['Scale ID'] == 'IM']
@@ -53,12 +54,12 @@ def preprocess_onet():
     )
 
     # Join occupation titles from Occupation Data
-    occ = pd.read_excel(os.path.join(RAW, 'Occupation Data.xlsx'))[['O*NET-SOC Code', 'Title']]
+    occ = pd.read_excel(ONET_OCCUPATION_XLSX)[['O*NET-SOC Code', 'Title']]
     profiles = profiles.merge(occ, on='O*NET-SOC Code', how='left')
 
     profiles['profile_text'] = profiles['profile_text'].apply(clean_text)
     profiles = profiles[['O*NET-SOC Code', 'Title', 'profile_text']]
-    profiles.to_csv(os.path.join(PROCESSED, 'onet_profiles.csv'), index=False)
+    profiles.to_csv(ONET_PROFILES_CSV, index=False)
     print(f"O*NET: {len(profiles)} occupation profiles saved to data/processed/onet_profiles.csv")
 
 

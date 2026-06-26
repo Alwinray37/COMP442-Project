@@ -5,7 +5,7 @@ import sys
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-from config import CACHE_DIR, FIGURE_DIR, JOB_POSTINGS_CSV, RESUME_CSV, RESUMES_CSV
+from project_paths import CACHE_DIR, FIGURE_DIR, JOB_POSTINGS_CSV, RESUME_CSV
 
 os.environ.setdefault("MPLCONFIGDIR", str(CACHE_DIR / "matplotlib"))
 os.environ.setdefault("XDG_CACHE_HOME", str(CACHE_DIR))
@@ -19,7 +19,6 @@ import pandas as pd
 
 
 RESUME_PATHS = [
-    RESUMES_CSV,
     RESUME_CSV,
 ]
 

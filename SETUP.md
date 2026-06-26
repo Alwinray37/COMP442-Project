@@ -24,7 +24,7 @@ Instructions for teammates getting up to speed on the project.
 **1. Pull the branch**
 ```bash
 git fetch origin
-git checkout backend-ml
+git checkout develop
 ```
 
 **2. Create and activate the virtual environment**
@@ -89,6 +89,7 @@ Expected response:
 {
   "status": "success",
   "category": "ENGINEERING",
+  "category_confidence": 0.8432,
   "matches": [
     { "soc_code": "17-2141.00", "job_title": "Mechanical Engineers", "score": 0.0631 },
     { "soc_code": "17-2071.00", "job_title": "Electrical Engineers", "score": 0.0612 },
@@ -98,6 +99,7 @@ Expected response:
 ```
 
 - `category` — the broad job category the classifier predicted from your resume
+- `category_confidence` — confidence for the top broad category
 - `matches` — top 5 specific O*NET job titles ranked by similarity score
 
 ---

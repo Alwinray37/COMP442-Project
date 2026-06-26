@@ -67,6 +67,10 @@
   text-decoration: none;
 }
 
+.nav-button {
+  min-height: 38px;
+}
+
 /* ── Cards / surfaces ── */
 .card {
   background: var(--surface);

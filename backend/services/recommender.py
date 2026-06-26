@@ -1,11 +1,13 @@
 import pickle
-import os
 import re
+import sys
+from pathlib import Path
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 
-MODELS = os.path.join(os.path.dirname(__file__), '../../models')
-PROCESSED = os.path.join(os.path.dirname(__file__), '../../data/processed')
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+
+from project_paths import LOGISTIC_CLASSIFIER_PATH, ONET_PROFILES_CSV, TFIDF_VECTORIZER_PATH
 
 _vectorizer = None
 _classifier = None
@@ -44,12 +46,12 @@ CATEGORY_SOC_MAP = {
 def _load_models():
     global _vectorizer, _classifier, _onet_profiles, _onet_tfidf
     if _vectorizer is None:
-        with open(os.path.join(MODELS, 'tfidf_vectorizer.pkl'), 'rb') as f:
+        with open(TFIDF_VECTORIZER_PATH, 'rb') as f:
             _vectorizer = pickle.load(f)
-        with open(os.path.join(MODELS, 'logistic_classifier.pkl'), 'rb') as f:
+        with open(LOGISTIC_CLASSIFIER_PATH, 'rb') as f:
             _classifier = pickle.load(f)
     if _onet_profiles is None:
-        _onet_profiles = pd.read_csv(os.path.join(PROCESSED, 'onet_profiles.csv'))
+        _onet_profiles = pd.read_csv(ONET_PROFILES_CSV)
         _onet_tfidf = _vectorizer.transform(_onet_profiles['profile_text'].fillna(''))
 
 
@@ -57,17 +59,38 @@ def _clean(text):
     return re.sub(r'\W+', ' ', text.lower()).strip()
 
 
-def predict_job_titles(user_text, top_k=5):
+def predict_job_titles(user_text, top_k=5, category_count=3, confidence_threshold=0.45, candidate_ratio=0.75):
     _load_models()
     text_clean = _clean(user_text)
     tfidf = _vectorizer.transform([text_clean])
 
     # Stage 1 — predict broad category
     probs = _classifier.predict_proba(tfidf)[0]
-    category = _classifier.classes_[probs.argmax()]
+    ranked_category_indices = probs.argsort()[::-1]
+    category = _classifier.classes_[ranked_category_indices[0]]
+    category_confidence = float(probs[ranked_category_indices[0]])
+    category_candidates = [
+        {
+            "category": _classifier.classes_[i],
+            "confidence": round(float(probs[i]), 4),
+        }
+        for i in ranked_category_indices[:category_count]
+    ]
 
-    # Stage 2 — filter O*NET to matching SOC groups, rank by cosine similarity
-    soc_prefixes = CATEGORY_SOC_MAP.get(category, [])
+    # Stage 2 — filter O*NET to likely SOC groups, rank by cosine similarity
+    categories_for_matching = [category]
+    if category_confidence < confidence_threshold:
+        categories_for_matching = [
+            item["category"]
+            for item in category_candidates
+            if item["confidence"] >= round(category_confidence * candidate_ratio, 4)
+        ]
+
+    soc_prefixes = sorted({
+        prefix
+        for candidate in categories_for_matching
+        for prefix in CATEGORY_SOC_MAP.get(candidate, [])
+    })
     if soc_prefixes:
         mask = _onet_profiles['O*NET-SOC Code'].str[:2].isin(soc_prefixes)
         subset_profiles = _onet_profiles[mask].reset_index(drop=True)
@@ -85,6 +108,8 @@ def predict_job_titles(user_text, top_k=5):
 
     return {
         "category": category,
+        "category_confidence": round(category_confidence, 4),
+        "category_candidates": category_candidates,
         "matches": [
             {
                 "soc_code": subset_profiles.iloc[i]['O*NET-SOC Code'],

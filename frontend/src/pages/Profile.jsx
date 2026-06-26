@@ -72,10 +72,18 @@ export default function Profile() {
       localStorage.setItem('recommendations', JSON.stringify(recs))
       setRecommendations(recs)
     } catch {
-      setFetchError('Could not reach the backend. Make sure it is running at localhost:5000.')
+      setFetchError('Could not reach the backend. Make sure it is running at localhost:5001.')
     } finally {
       setFetching(false)
     }
+  }
+
+  const clearSavedInfo = () => {
+    localStorage.removeItem('userProfile')
+    localStorage.removeItem('recommendations')
+    setData(null)
+    setRecommendations(null)
+    navigate('/intake')
   }
 
   if (!data) return null
@@ -88,6 +96,9 @@ export default function Profile() {
         <Link className="brand" to="/">COMP442 Project – Job Recommender</Link>
         <div className="nav-links">
           <Link to="/intake">Edit profile</Link>
+          <button className="btn-danger nav-button" type="button" onClick={clearSavedInfo}>
+            Clear saved info
+          </button>
           <button
             className="nav-action"
             type="button"

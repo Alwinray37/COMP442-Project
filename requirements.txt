@@ -3,5 +3,6 @@ matplotlib
 seaborn
 scipy
 scikit-learn
-huggingface_hub
-sentence-transformers
+openpyxl
+Flask
+PyPDF2

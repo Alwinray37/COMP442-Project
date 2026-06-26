@@ -1,6 +1,6 @@
 # Backend — Data Preprocessing & ML Pipeline
 
-This document describes the full data preprocessing and preparation pipeline for the COMP442 Job Recommender system. It corresponds to the Assignment 4 Data Preprocessing report.
+This document describes the full data preprocessing and preparation pipeline for the COMP442 Job Recommender system.
 
 ---
 
@@ -37,7 +37,7 @@ The pipeline is located in `ml/preprocess.py` and must be run before training.
 
 ## Step 2 — Data Cleaning (O\*NET Files)
 
-**File:** `ml/preprocess.py` → `preprocess_onet()` *(to be implemented)*
+**File:** `ml/preprocess.py` → `preprocess_onet()`
 
 The following O\*NET files are used:
 
@@ -72,7 +72,7 @@ The following O\*NET files are used:
 ### TF-IDF Vectorization
 Applied in `ml/train_classifier.py`.
 
-Raw cleaned text is converted to numerical vectors using TF-IDF (Term Frequency–Inverse Document Frequency):
+Raw cleaned text is converted to numerical vectors using TF-IDF (Term Frequency–Inverse Document Frequency). The vectorizer is fit on the resume training text plus O\*NET profile text so both sources share one vocabulary:
 - **TF** — how often a word appears in one resume
 - **IDF** — down-weights words that appear across all resumes (common words carry less meaning)
 - **Result** — each resume becomes a 5,000-dimensional sparse vector
@@ -143,13 +143,13 @@ cd backend && python app.py
 
 ---
 
-## Current Status vs. Assignment 4 Report
+## Current Status
 
-| Item | Assignment 4 Report | Code Status |
-|---|---|---|
-| Resume cleaning | Described and implemented | ✅ Done |
-| O\*NET profile building | Described | ⚠️ Not implemented yet |
-| Feature selection (Data Value filter) | Described | ⚠️ Not implemented yet |
-| TF-IDF vectorization | Described | ✅ Done (in train_classifier.py) |
-| Two-stage pipeline (classify → O\*NET match) | Described | ⚠️ Classifier done, O\*NET stage pending |
-| HuggingFace jobs dataset | Originally included | ❌ Removed — replaced by O\*NET |
+| Item | Code Status |
+|---|---|
+| Resume cleaning | Done |
+| O\*NET profile building | Done |
+| Feature selection with `Data Value` filter | Done |
+| TF-IDF vectorization | Done in `ml/train_classifier.py` |
+| Two-stage pipeline: classify, then match to O\*NET | Done |
+| Flask prediction API | Done |

@@ -6,12 +6,10 @@ import pandas as pd
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-from config import DIAGRAM_DIR, RESUME_CSV
+from project_paths import CACHE_DIR, DIAGRAM_DIR, RESUME_CSV
 
-cache_dir = Path(__file__).resolve().parents[2] / ".cache"
-cache_dir.mkdir(exist_ok=True)
-os.environ.setdefault("MPLCONFIGDIR", str(cache_dir / "matplotlib"))
-os.environ.setdefault("XDG_CACHE_HOME", str(cache_dir))
+os.environ.setdefault("MPLCONFIGDIR", str(CACHE_DIR / "matplotlib"))
+os.environ.setdefault("XDG_CACHE_HOME", str(CACHE_DIR))
 
 import matplotlib
 
@@ -20,6 +18,7 @@ import matplotlib.pyplot as plt
 
 
 def main():
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
     DIAGRAM_DIR.mkdir(parents=True, exist_ok=True)
 
     resumes = pd.read_csv(RESUME_CSV)

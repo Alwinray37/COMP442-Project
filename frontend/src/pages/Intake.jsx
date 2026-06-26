@@ -10,6 +10,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
 const emptyJob = { title: '', company: '', location: '', dateFrom: '', dateTo: '', description: '', skills: [] }
 const emptyEducation = { school: '', degree: '', location: '', dateFrom: '', dateTo: '', details: '' }
 const emptyProject = { name: '', role: '', link: '', dateFrom: '', dateTo: '', description: '', skills: [] }
+const emptyProfile = { fullName: '', email: '', phone: '', location: '', headline: '', summary: '', links: '' }
 
 // Best-effort extraction helpers
 function toTitleCase(str) {
@@ -151,9 +152,7 @@ export default function Intake() {
 
   const saved = (() => { try { return JSON.parse(localStorage.getItem('userProfile') || 'null') } catch { return null } })()
 
-  const [profile, setProfile] = useState(saved?.profile ?? {
-    fullName: '', email: '', phone: '', location: '', headline: '', summary: '', links: '',
-  })
+  const [profile, setProfile] = useState(saved?.profile ?? { ...emptyProfile })
   const [jobs, setJobs] = useState(saved?.experience ?? [{ ...emptyJob }])
   const [education, setEducation] = useState(saved?.education ?? [{ ...emptyEducation }])
   const [projects, setProjects] = useState(saved?.projects ?? [{ ...emptyProject }])
@@ -186,14 +185,6 @@ export default function Intake() {
         fullText += content.items.map((item) => item.str).join(' ') + '\n'
       }
       setRawResumeText(fullText)
-      console.log('RAW:', JSON.stringify(fullText.slice(0, 500)))
-      console.log('NAME:', extractName(fullText))
-      console.log('EMAIL:', extractEmail(fullText))
-      console.log('PHONE:', extractPhone(fullText))
-      console.log('LOCATION:', extractLocation(fullText))
-      console.log('SKILLS:', extractSkills(fullText))
-      console.log('EXPERIENCE:', JSON.stringify(extractExperience(fullText)))
-      console.log('EDUCATION:', JSON.stringify(extractEducation(fullText)))
       // Pre-fill what we can extract
       setProfile((prev) => ({
         ...prev,
@@ -220,6 +211,23 @@ export default function Intake() {
 
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
+
+  const clearSavedInfo = () => {
+    localStorage.removeItem('userProfile')
+    localStorage.removeItem('recommendations')
+    setEntryMode('manual')
+    setResumePdf(null)
+    setParsing(false)
+    setParseError('')
+    setSubmitError('')
+    setProfile({ ...emptyProfile })
+    setJobs([{ ...emptyJob }])
+    setEducation([{ ...emptyEducation }])
+    setProjects([{ ...emptyProject }])
+    setSkills([])
+    setInterests([])
+    setRawResumeText('')
+  }
 
   const buildResumeText = () => {
     const parts = []
@@ -271,7 +279,7 @@ export default function Intake() {
       const data = await res.json()
       localStorage.setItem('recommendations', JSON.stringify(data))
     } catch (err) {
-      setSubmitError('Could not reach the backend. Make sure it is running at localhost:5000.')
+      setSubmitError('Could not reach the backend. Make sure it is running at localhost:5001.')
     } finally {
       setSubmitting(false)
       navigate('/profile')
@@ -284,6 +292,9 @@ export default function Intake() {
         <Link className="brand" to="/">COMP442 Project – Job Recommender</Link>
         <div className="nav-links">
           <Link to="/">Home</Link>
+          <button className="btn-danger nav-button" type="button" onClick={clearSavedInfo}>
+            Clear saved info
+          </button>
           <Link className="nav-action" to="/intake">Intake</Link>
         </div>
       </nav>
