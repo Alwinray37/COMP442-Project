@@ -1,17 +1,21 @@
 /* ── Tokens ── */
 :root {
-  --bg: #f5f7fb;
+  --bg: #f7f6fb;
   --surface: #ffffff;
-  --surface-soft: #eef4f7;
-  --text: #162033;
-  --muted: #5b6677;
-  --border: #d9e1ea;
-  --accent: #0f766e;
-  --accent-dark: #0b5752;
-  --accent-soft: #e0f2f1;
+  --surface-soft: #f1f4f2;
+  --text: #1d2433;
+  --muted: #626b7a;
+  --border: #dedee8;
+  --accent: #0b5d4b;
+  --accent-dark: #064236;
+  --accent-soft: #e4f2ed;
+  --purple: #5b4bb7;
+  --purple-soft: #eeeaff;
+  --orange: #c7661f;
+  --orange-soft: #fff1e5;
   --danger: #dc2626;
   --danger-soft: #fef2f2;
-  --shadow: 0 4px 24px rgba(22, 32, 51, 0.08);
+  --shadow: 0 4px 24px rgba(29, 36, 51, 0.08);
   --radius: 10px;
 }
 
@@ -19,39 +23,75 @@
 .app-shell {
   width: min(1120px, calc(100% - 32px));
   margin: 0 auto;
-  padding: 28px 0 72px;
+  padding: 0 0 72px;
 }
 
 /* ── Navbar ── */
 .navbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 32px;
+  padding: 10px 0;
+  background: rgba(247, 246, 251, 0.92);
+  backdrop-filter: blur(10px);
   flex-wrap: wrap;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  padding-left: max(16px, calc((100vw - 1120px) / 2));
+  padding-right: max(16px, calc((100vw - 1120px) / 2));
+  border-bottom: 1px solid rgba(222, 222, 232, 0.8);
+}
+
+.navbar + * {
+  margin-top: 28px;
 }
 
 .brand {
   text-decoration: none;
   font-weight: 800;
   font-size: 1rem;
-  color: var(--text);
+  color: var(--accent-dark);
   white-space: nowrap;
 }
 
+.nav-workflow,
+.nav-actions,
 .nav-links {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
+.nav-workflow {
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.workflow-link,
 .nav-links a {
   text-decoration: none;
   color: var(--muted);
   font-weight: 600;
   font-size: 0.92rem;
+}
+
+.workflow-link {
+  border-radius: 7px;
+  padding: 8px 12px;
+}
+
+.workflow-link.is-active {
+  background: var(--purple-soft);
+  color: var(--purple);
 }
 
 .nav-action {
@@ -94,7 +134,7 @@
 .eyebrow,
 .card-label {
   margin: 0 0 8px;
-  color: var(--accent-dark);
+  color: var(--purple);
   font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -148,6 +188,11 @@
   font-weight: 700;
   text-decoration: none;
   cursor: pointer;
+}
+
+.btn-secondary:hover {
+  border-color: rgba(91, 75, 183, 0.45);
+  color: var(--purple);
 }
 
 .btn-danger {
@@ -222,7 +267,8 @@
 .stack-list span {
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--surface-soft);
+  background: var(--purple-soft);
+  color: var(--purple);
   padding: 7px 12px;
   font-size: 0.88rem;
   font-weight: 700;
@@ -248,11 +294,19 @@
 
 .status-card {
   padding: 24px;
+  border-left: 5px solid var(--orange);
+  background: linear-gradient(180deg, #fff, var(--orange-soft));
 }
 
 .status-card p {
   color: var(--muted);
   font-size: 0.92rem;
+}
+
+.status-card h2 {
+  font-size: 1.1rem;
+  margin: 0 0 8px;
+  color: var(--text);
 }
 
 .file-meta {
@@ -287,8 +341,8 @@
 }
 
 .mode-switch button.is-active {
-  background: var(--accent-soft);
-  color: var(--accent-dark);
+  background: var(--purple-soft);
+  color: var(--purple);
 }
 
 /* ── Upload dropzone ── */
@@ -297,7 +351,7 @@
   gap: 6px;
   margin-top: 16px;
   padding: 28px 22px;
-  border: 2px dashed rgba(15, 118, 110, 0.4);
+  border: 2px dashed rgba(11, 93, 75, 0.4);
   border-radius: var(--radius);
   background: var(--accent-soft);
   cursor: pointer;
@@ -371,7 +425,8 @@
 .field input:focus,
 .field textarea:focus {
   outline: none;
-  border-color: var(--accent);
+  border-color: var(--purple);
+  box-shadow: 0 0 0 3px rgba(91, 75, 183, 0.12);
 }
 
 .field textarea {
@@ -440,7 +495,7 @@
   gap: 14px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: #fbfcfe;
+  background: #fbfbff;
   padding: 18px;
 }
 
@@ -465,7 +520,7 @@
   gap: 16px;
   flex-wrap: wrap;
   padding: 20px 24px;
-  border-top: 1px solid var(--border);
+  border-top: 3px solid var(--accent);
   background: var(--surface);
   position: sticky;
   bottom: 0;
@@ -492,6 +547,14 @@
   gap: 16px;
 }
 
+.profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
 .profile-name {
   font-size: clamp(1.6rem, 4vw, 2.4rem);
   margin-bottom: 4px;
@@ -509,7 +572,7 @@
   font-size: 1rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--accent-dark);
+  color: var(--purple);
   margin-bottom: 12px;
   padding-bottom: 6px;
   border-bottom: 1px solid var(--border);
@@ -529,6 +592,39 @@
   font-size: 0.9rem;
 }
 
+.recommendation-list {
+  display: grid;
+  margin-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.recommendation-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.recommendation-rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--orange-soft);
+  color: var(--orange);
+  font-weight: 800;
+}
+
+.recommendation-score {
+  color: var(--accent-dark);
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .tag-list {
   display: flex;
   flex-wrap: wrap;
@@ -541,8 +637,8 @@
 }
 
 .tag-list .tag-interest {
-  background: #fef9c3;
-  color: #854d0e;
+  background: var(--orange-soft);
+  color: var(--orange);
 }
 
 /* ── Responsive ── */
@@ -554,6 +650,26 @@
 
   .hero-panel {
     padding: 28px 22px;
+  }
+
+  .navbar {
+    align-items: stretch;
+  }
+
+  .brand,
+  .nav-workflow,
+  .nav-actions {
+    width: 100%;
+  }
+
+  .nav-workflow {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .workflow-link {
+    text-align: center;
+    padding-inline: 8px;
   }
 
   .content-grid {
@@ -574,6 +690,19 @@
 
   .profile-header {
     grid-template-columns: 1fr;
+  }
+
+  .profile-actions {
+    justify-content: stretch;
+  }
+
+  .profile-actions .btn-primary,
+  .profile-actions .btn-secondary {
+    flex: 1;
+  }
+
+  .recommendation-row {
+    align-items: flex-start;
   }
 
   .submit-bar {

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import AppNav from '../components/AppNav.jsx'
 
 const techStack = [
   'React',
@@ -7,7 +8,7 @@ const techStack = [
   'Flask',
   'scikit-learn',
   'TF-IDF',
-  'Logistic Regression',
+  'Cosine Similarity',
   'O*NET Database',
   'pandas',
   'Natural Language Processing',
@@ -16,23 +17,15 @@ const techStack = [
 export default function Home() {
   return (
     <main className="app-shell">
-      <nav className="navbar">
-        <Link className="brand" to="/">COMP442 Project – Job Recommender</Link>
-        <div className="nav-links">
-          <a href="#about">About</a>
-          <a href="#how-it-works">How it works</a>
-          <a href="#tech-stack">Tech stack</a>
-          <Link className="nav-action" to="/intake">Get started</Link>
-        </div>
-      </nav>
+      <AppNav actions={<Link className="nav-action" to="/intake">Get started</Link>} />
 
       <header className="hero-panel card">
         <p className="eyebrow">COMP442 ML/NLP Project</p>
-        <h1>Discover job titles that fit your background.</h1>
+        <h1>Explore career paths that match your background.</h1>
         <p className="hero-copy">
-          Upload your resume or enter your experience, education, skills, and interests.
-          Our machine learning model will recommend the job titles best suited for you —
-          across all industries, not just tech.
+          Upload a PDF resume or enter only the background details the recommender needs.
+          The app turns your skills, experience, education, and interests into ranked
+          occupation matches from the O*NET database.
         </p>
         <div className="hero-actions">
           <Link className="btn-primary" to="/intake">Start now</Link>
@@ -46,28 +39,27 @@ export default function Home() {
           <h2>What this project does</h2>
         </div>
         <p>
-          Many job seekers don't know what roles they qualify for or what fields align with their
-          interests. This project uses machine learning and the O*NET occupational database to
-          analyze your full background — skills, experience, education, and personal interests —
-          and surfaces the job titles most likely to be a strong fit for you.
+          This COMP442 project connects a React intake flow to a Flask recommendation API.
+          It collects resume-like text, predicts the closest career area, compares the profile
+          against O*NET occupation descriptions, and returns specific job titles with match scores.
         </p>
       </section>
 
       <section id="how-it-works" className="content-grid">
         <article className="info-card card">
           <p className="card-label">Step 1</p>
-          <h2>Build your profile</h2>
-          <p>Upload a resume PDF or manually enter your experience, education, skills, and interests.</p>
+          <h2>Add useful signals</h2>
+          <p>Upload a resume PDF or manually enter goals, skills, interests, experience, and education.</p>
         </article>
         <article className="info-card card">
           <p className="card-label">Step 2</p>
-          <h2>Run the model</h2>
-          <p>Our ML pipeline analyzes your profile against thousands of O*NET occupation profiles to find the best matches.</p>
+          <h2>Run the API</h2>
+          <p>The frontend sends one combined text profile to the Flask backend for matching.</p>
         </article>
         <article className="info-card card">
           <p className="card-label">Step 3</p>
-          <h2>Review results</h2>
-          <p>Get a ranked list of job titles with fit scores — and the option to explore more beyond the top 5.</p>
+          <h2>Review matches</h2>
+          <p>See the predicted category and ranked O*NET job titles with similarity scores.</p>
         </article>
       </section>
 
