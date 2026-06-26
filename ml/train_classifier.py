@@ -18,8 +18,14 @@ def train():
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
+    # Fit vectorizer on resumes + O*NET profiles so both share the same vocabulary
+    onet = pd.read_csv(os.path.join(PROCESSED, 'onet_profiles.csv'))
+    onet_text = onet['profile_text'].dropna()
+    combined_corpus = pd.concat([X_train, onet_text], ignore_index=True)
+
     vectorizer = TfidfVectorizer(max_features=5000, stop_words='english')
-    X_train_tfidf = vectorizer.fit_transform(X_train)
+    vectorizer.fit(combined_corpus)
+    X_train_tfidf = vectorizer.transform(X_train)
     X_test_tfidf = vectorizer.transform(X_test)
 
     model = LogisticRegression(max_iter=1000, random_state=42)
