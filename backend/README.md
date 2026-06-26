@@ -43,7 +43,7 @@ The following O\*NET files are used:
 
 | File | Contents |
 |---|---|
-| `Occupation Data.xlsx` | 1,016 occupation titles and SOC codes |
+| `Occupation Data.xlsx` | 1,016 occupation titles, SOC codes, and descriptions |
 | `Essential Skills.xlsx` | Core skills mapped to each occupation |
 | `Knowledge.xlsx` | Knowledge domains per occupation |
 | `Abilities.xlsx` | Required abilities per occupation |
@@ -56,14 +56,22 @@ The following O\*NET files are used:
 |---|---|---|
 | Filter by importance | Keep only rows where `Scale ID = IM` (Importance) and `Data Value >= 3.0` | Removes low-relevance skills from each occupation profile — reduces noise |
 | Drop irrelevant columns | Remove `Standard Error`, `CI Bound`, `Date`, `Domain Source`, `N` | No predictive value — statistical metadata only |
-| Join on SOC code | Merge all five skill files on `O*NET-SOC Code` | Combines all attributes into one record per occupation |
+| Join on SOC code | Merge all five skill files and occupation metadata on `O*NET-SOC Code` | Combines all attributes into one record per occupation |
 | Build text profile | Concatenate all `Element Name` values per occupation into one string | Creates a single document per occupation — same format as a resume |
 | Clean text | Lowercase, remove punctuation, normalize whitespace | Matches the same cleaning applied to resumes — enables fair comparison |
-| Save | Write to `data/processed/onet_profiles.csv` | One row per occupation: `soc_code`, `title`, `profile_text` |
+| Save | Write to `data/processed/onet_profiles.csv` | One row per occupation: `soc_code`, `title`, `description`, `profile_text` |
 
 ### Result
 - Input: ~150,000 rows across 5 files
-- Output: ~1,016 rows — one unified text profile per occupation
+- Output: **894 rows** — one unified text profile per occupation
+
+### Why not 1,016?
+
+`Occupation Data.xlsx` contains 1,016 occupations, but 122 of them have no rows surviving the `Data Value >= 3.0` importance filter across all 5 skill files. These are mostly:
+- **"All Other" catch-all categories** (e.g., "Managers, All Other", "Computer Occupations, All Other") — O\*NET does not assign detailed skill importance ratings to these
+- **Newer roles** (e.g., Blockchain Engineers, Penetration Testers, Digital Forensics Analysts) — not yet rated in this version of the O\*NET dataset
+
+Because `preprocess_onet()` builds profiles by grouping on skill data and then merging with occupation titles, occupations with no skill rows produce no profile and are excluded from the output. They will never appear in recommendation results.
 
 ---
 
@@ -103,6 +111,7 @@ The target variable `Category` (e.g. `ENGINEERING`, `HEALTHCARE`) is passed dire
 |---|---|---|
 | `O*NET-SOC Code` | ✅ | Join key across all files |
 | `Title` | ✅ | Human-readable output label |
+| `Description` | ✅ | Human-readable job summary returned by the API and shown in the frontend |
 | `Element Name` | ✅ | Core feature — the skill/knowledge/ability name |
 | `Data Value` | ✅ (filtered) | Used to filter low-importance entries only |
 | `Standard Error`, CI bounds, `Date` | ❌ | Statistical metadata — no predictive value |

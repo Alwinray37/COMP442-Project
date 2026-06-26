@@ -33,10 +33,16 @@ def preprocess_resumes():
 
 
 def preprocess_onet():
+    # Each of the 5 files contains attributes mapped to occupations via O*NET-SOC Code.
+    # We filter to Scale ID = IM (Importance) and Data Value >= 3.0 to keep only attributes
+    # that are meaningfully important for each occupation — this reduces noise.
+    # Work Styles has no Scale ID column so all its rows are included.
+    # NOTE: 122 of the 1,016 occupations in Occupation Data.xlsx have no rows surviving
+    # this filter (mostly "All Other" catch-alls and some newer roles like Blockchain Engineers).
+    # Those occupations are dropped during the merge below and will not appear in results.
     frames = []
     for path in ONET_PROFILE_FILES:
         df = pd.read_excel(path)
-        # Work Styles has no Scale ID — include all rows
         if 'Scale ID' in df.columns:
             df = df[df['Scale ID'] == 'IM']
             df = df[df['Data Value'] >= 3.0]
@@ -44,7 +50,9 @@ def preprocess_onet():
 
     combined = pd.concat(frames, ignore_index=True)
 
-    # Build one text profile per occupation by joining all element names
+    # Group by occupation and concatenate all element names into one text string.
+    # This creates a single "document" per occupation in the same format as a resume,
+    # enabling direct TF-IDF cosine similarity comparison between resumes and occupations.
     profiles = (
         combined
         .groupby('O*NET-SOC Code')['Element Name']
@@ -53,7 +61,8 @@ def preprocess_onet():
         .rename(columns={'Element Name': 'profile_text'})
     )
 
-    # Join occupation titles and descriptions from Occupation Data
+    # Join occupation titles and descriptions from Occupation Data.
+    # Uses inner-style left merge — occupations with no skill data are excluded.
     occ = pd.read_excel(ONET_OCCUPATION_XLSX)[['O*NET-SOC Code', 'Title', 'Description']]
     profiles = profiles.merge(occ, on='O*NET-SOC Code', how='left')
 
@@ -61,6 +70,7 @@ def preprocess_onet():
     profiles = profiles[['O*NET-SOC Code', 'Title', 'Description', 'profile_text']]
     profiles.to_csv(ONET_PROFILES_CSV, index=False)
     print(f"O*NET: {len(profiles)} occupation profiles saved to data/processed/onet_profiles.csv")
+    print(f"  Note: {1016 - len(profiles)} occupations from Occupation Data.xlsx had no skill data after filtering and were excluded.")
 
 
 if __name__ == '__main__':
