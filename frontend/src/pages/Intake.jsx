@@ -12,6 +12,60 @@ const emptyJob = { title: '', description: '', skills: [] }
 const emptyEducation = { degree: '', details: '' }
 const emptyProfile = { headline: '', summary: '' }
 
+const resumePresets = [
+  {
+    label: 'Software',
+    profile: {
+      headline: 'Software development',
+      summary: 'Software developer with experience designing, developing, testing, and debugging applications. Comfortable analyzing user needs, writing technical documentation, building APIs, working with databases, and improving application performance.',
+    },
+    jobs: [
+      {
+        title: 'Software Developer',
+        description: 'Built web applications, designed API endpoints, debugged production issues, wrote tests, and collaborated with teammates to deliver reliable software.',
+        skills: ['Python', 'JavaScript', 'SQL', 'React', 'Flask', 'Git', 'APIs', 'Databases'],
+      },
+    ],
+    education: [{ degree: 'Computer Science', details: 'Coursework in software engineering, databases, algorithms, and web development.' }],
+    skills: ['Python', 'JavaScript', 'SQL', 'React', 'Flask', 'Git', 'API development'],
+    interests: ['software systems', 'problem solving', 'web development'],
+  },
+  {
+    label: 'Teaching',
+    profile: {
+      headline: 'Teaching and coaching',
+      summary: 'Teaching assistant and volleyball coach with experience mentoring students, planning lessons and practices, supporting learning, communicating with families and staff, and creating positive growth-oriented environments.',
+    },
+    jobs: [
+      {
+        title: 'Teaching Assistant and Volleyball Coach',
+        description: 'Supported classroom instruction, tutored students, planned volleyball practices, taught technical skills, encouraged teamwork, and provided individualized feedback.',
+        skills: ['Instruction', 'Tutoring', 'Lesson planning', 'Coaching', 'Communication', 'Leadership'],
+      },
+    ],
+    education: [{ degree: 'Education / Kinesiology', details: 'Relevant work in student support, pedagogy, athletics, and youth development.' }],
+    skills: ['Teaching', 'Mentoring', 'Coaching', 'Lesson planning', 'Student assessment'],
+    interests: ['education', 'volleyball', 'teamwork'],
+  },
+  {
+    label: 'Healthcare',
+    profile: {
+      headline: 'Patient care',
+      summary: 'Healthcare worker with experience supporting patient care, monitoring vital signs, documenting medical information, communicating with care teams, educating patients, and following safety procedures.',
+    },
+    jobs: [
+      {
+        title: 'Patient Care Assistant',
+        description: 'Assisted patients with daily needs, recorded observations, supported nurses and physicians, maintained safety standards, and communicated patient updates.',
+        skills: ['Patient care', 'Vital signs', 'Medical documentation', 'Safety procedures', 'Communication'],
+      },
+    ],
+    education: [{ degree: 'Healthcare studies', details: 'Coursework or training in anatomy, patient safety, clinical communication, and health services.' }],
+    skills: ['Patient care', 'Clinical support', 'Documentation', 'Communication', 'Safety'],
+    interests: ['healthcare', 'helping people', 'patient education'],
+  },
+]
+
 // Best-effort extraction helpers
 function extractExperience(text) {
   const section = text.match(/EXPERIENCE([\s\S]{0,3000}?)(?:EDUCATION|PROJECTS|SKILLS|CERTIFICATIONS|REFERENCES|$)/i)
@@ -170,6 +224,20 @@ export default function Intake() {
     setRawResumeText('')
   }
 
+  const applyPreset = (preset) => {
+    setEntryMode('manual')
+    setResumePdf(null)
+    setParseError('')
+    setSubmitError('')
+    setProfile(preset.profile)
+    setJobs(preset.jobs)
+    setEducation(preset.education)
+    setSkills(preset.skills)
+    setInterests(preset.interests)
+    setRawResumeText('')
+    localStorage.removeItem('recommendations')
+  }
+
   const buildResumeText = () => {
     const parts = []
     if (profile.headline) parts.push(profile.headline)
@@ -239,12 +307,24 @@ export default function Intake() {
             Add the skills, interests, education, and experience the model should use. Saving here refreshes the recommendations page.
           </p>
         </div>
-        <div className="card status-card">
-          <p className="card-label">Current page</p>
-          <h2>Editing intake</h2>
-          {parsing && <p>Parsing PDF…</p>}
+        <div className="card preset-card">
+          <p className="card-label">Quick test</p>
+          <h2>Try a sample profile</h2>
+          <p>Fill the intake with preset resume data, then save to compare recommendations.</p>
+          <div className="preset-actions">
+            {resumePresets.map((preset) => (
+              <button
+                className="preset-button"
+                key={preset.label}
+                type="button"
+                onClick={() => applyPreset(preset)}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+          {parsing && <p className="file-meta">Parsing PDF…</p>}
           {!parsing && rawResumeText && <p className="file-meta">PDF parsed. Review the fields, then save again.</p>}
-          {!parsing && !rawResumeText && <p>{entryMode === 'pdf' ? 'Upload a PDF to prefill the intake.' : 'Update fields, then save to view job matches.'}</p>}
           {resumePdf && !parsing && <p style={{ fontSize: '0.85rem', color: 'var(--muted)', marginTop: 6 }}>{resumePdf.name}</p>}
         </div>
       </header>

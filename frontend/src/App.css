@@ -292,21 +292,42 @@
   margin-bottom: 10px;
 }
 
-.status-card {
+.preset-card {
   padding: 24px;
   border-left: 5px solid var(--orange);
   background: linear-gradient(180deg, #fff, var(--orange-soft));
 }
 
-.status-card p {
+.preset-card p {
   color: var(--muted);
   font-size: 0.92rem;
 }
 
-.status-card h2 {
+.preset-card h2 {
   font-size: 1.1rem;
   margin: 0 0 8px;
   color: var(--text);
+}
+
+.preset-actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.preset-button {
+  border: 1px solid rgba(199, 102, 31, 0.35);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  min-height: 38px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.preset-button:hover {
+  border-color: var(--orange);
+  color: var(--orange);
 }
 
 .file-meta {
