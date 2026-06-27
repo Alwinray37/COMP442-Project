@@ -91,8 +91,18 @@ Expected response:
   "category": "ENGINEERING",
   "category_confidence": 0.8432,
   "matches": [
-    { "soc_code": "17-2141.00", "job_title": "Mechanical Engineers", "score": 0.0631 },
-    { "soc_code": "17-2071.00", "job_title": "Electrical Engineers", "score": 0.0612 },
+    {
+      "soc_code": "17-2141.00",
+      "job_title": "Mechanical Engineers",
+      "description": "Perform engineering duties in planning and designing tools, engines, machines, and other mechanically functioning equipment.",
+      "score": 0.0631
+    },
+    {
+      "soc_code": "17-2071.00",
+      "job_title": "Electrical Engineers",
+      "description": "Research, design, develop, test, or supervise the manufacturing and installation of electrical equipment.",
+      "score": 0.0612
+    },
     ...
   ]
 }
@@ -100,7 +110,7 @@ Expected response:
 
 - `category` — the broad job category the classifier predicted from your resume
 - `category_confidence` — confidence for the top broad category
-- `matches` — top 10 specific O*NET job titles ranked by similarity score
+- `matches` — top 10 specific O*NET job titles ranked by similarity score, including O*NET-SOC code and description
 
 ---
 

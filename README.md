@@ -9,7 +9,7 @@ COMP442 ML class project -- Job recommender system. User uploads resume or input
 The system is built on a two-stage pipeline.
 
 1. **Data Collection & Preprocessing**
-We sourced a dataset of 2,484 labeled resumes across 24 broad job categories including Healthcare, Finance, Engineering, Education, Sales, Arts, and more. The resume text is cleaned — lowercased, punctuation removed — and duplicate records are dropped before training. Separately, O\*NET occupation profiles are built by combining skills, knowledge, abilities, work activities, and work styles into one text document per occupation.
+We sourced a dataset of 2,484 labeled resumes across 24 broad job categories including Healthcare, Finance, Engineering, Education, Sales, Arts, and more. The resume text is cleaned — lowercased, punctuation removed — and duplicate records are dropped before training. Separately, O\*NET occupation profiles are built by combining skills, knowledge, abilities, work activities, and work styles into one text document per occupation, while keeping each occupation's official description for display in the UI.
 
 2. **Feature Extraction**
 Each resume and occupation profile is converted into a numerical representation using TF-IDF (Term Frequency–Inverse Document Frequency). This captures which words and phrases are most significant relative to the entire dataset, turning raw text into a vector the model can learn from.
@@ -21,7 +21,7 @@ A Logistic Regression classifier is trained on the TF-IDF resume vectors using t
 When a new resume is submitted, the classifier predicts its broad job category. The system then computes cosine similarity between the resume vector and O\*NET occupation profiles in the most likely SOC groups. If category confidence is low, it considers several likely categories to avoid over-filtering too early.
 
 5. **User Interface**
-Users interact through a React web application where they can either upload a PDF resume or manually enter their skills, experience, and education. The frontend sends the input to a Flask REST API, which runs it through the trained model and returns a ranked list of job title recommendations.
+Users interact through a React web application where they can either upload a PDF resume or manually enter their skills, experience, and education. The frontend sends the input to a Flask REST API, which runs it through the trained model and returns a ranked list of job title recommendations with expandable descriptions.
 
 ## Project Structure
 
@@ -60,7 +60,7 @@ COMP442-Project/
 Raw datasets go in `data/raw/` and are never modified.
 
 - `data/raw/Resume.csv` — 2,484 labeled resumes across 24 job categories (classifier training data)
-- `data/raw/Occupation Data.xlsx` — O\*NET occupation titles and SOC codes
+- `data/raw/Occupation Data.xlsx` — O\*NET occupation titles, SOC codes, and descriptions
 - `data/raw/Essential Skills.xlsx` — core skills per occupation
 - `data/raw/Knowledge.xlsx` — knowledge domains per occupation
 - `data/raw/Abilities.xlsx` — required abilities per occupation
@@ -96,7 +96,7 @@ The Flask API loads the saved models and serves predictions. It does not retrain
 
 Endpoints:
 - `GET /status` — health check
-- `POST /api/match` — accepts PDF or JSON resume, returns top job title recommendations
+- `POST /api/match` — accepts PDF or JSON resume, returns 10 job title recommendations with O\*NET-SOC codes, descriptions, and similarity scores
 
 Run the backend (models must be trained first):
 ```bash
