@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT))
 sys.path.append(str(ROOT / "backend"))
 
-from project_paths import RESUME_CSV
+from project_paths import ONET_SOFTWARE_SKILLS_XLSX, RESUME_CSV
 from services.resume_parser import parse_resume_text
 from app import app
 
@@ -15,6 +15,9 @@ from app import app
 class SmokeTests(unittest.TestCase):
     def test_resume_dataset_path_exists(self):
         self.assertTrue(RESUME_CSV.exists())
+
+    def test_software_skills_path_exists(self):
+        self.assertTrue(ONET_SOFTWARE_SKILLS_XLSX.exists())
 
     def test_resume_text_parser_returns_clean_text(self):
         parsed = parse_resume_text("Python developer with SQL experience.")

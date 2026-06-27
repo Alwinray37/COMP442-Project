@@ -9,6 +9,7 @@ from project_paths import (
     ONET_OCCUPATION_XLSX,
     ONET_PROFILE_FILES,
     ONET_PROFILES_CSV,
+    ONET_SOFTWARE_SKILLS_XLSX,
     PROCESSED_DATA_DIR,
     RESUME_CSV,
     RESUMES_CLEAN_CSV,
@@ -23,6 +24,10 @@ def clean_text(text):
     return text.strip()
 
 
+def join_unique(values):
+    return ' '.join(str(value) for value in values.dropna().unique())
+
+
 def preprocess_resumes():
     df = pd.read_csv(RESUME_CSV)
     df = df.drop_duplicates(subset='Resume_str')
@@ -33,7 +38,7 @@ def preprocess_resumes():
 
 
 def preprocess_onet():
-    # Each of the 5 files contains attributes mapped to occupations via O*NET-SOC Code.
+    # Each core O*NET attribute file contains attributes mapped to occupations via O*NET-SOC Code.
     # We filter to Scale ID = IM (Importance) and Data Value >= 3.0 to keep only attributes
     # that are meaningfully important for each occupation — this reduces noise.
     # Work Styles has no Scale ID column so all its rows are included.
@@ -56,16 +61,29 @@ def preprocess_onet():
     profiles = (
         combined
         .groupby('O*NET-SOC Code')['Element Name']
-        .apply(lambda names: ' '.join(names.dropna().unique()))
+        .apply(join_unique)
         .reset_index()
-        .rename(columns={'Element Name': 'profile_text'})
+        .rename(columns={'Element Name': 'attribute_text'})
     )
+
+    software = pd.read_excel(ONET_SOFTWARE_SKILLS_XLSX)
+    software['software_text'] = software[['Element Name', 'Workplace Example']].fillna('').agg(' '.join, axis=1)
+    software_profiles = (
+        software
+        .groupby('O*NET-SOC Code')['software_text']
+        .apply(join_unique)
+        .reset_index()
+    )
+    profiles = profiles.merge(software_profiles, on='O*NET-SOC Code', how='left')
 
     # Join occupation titles and descriptions from Occupation Data.
     # Uses inner-style left merge — occupations with no skill data are excluded.
     occ = pd.read_excel(ONET_OCCUPATION_XLSX)[['O*NET-SOC Code', 'Title', 'Description']]
     profiles = profiles.merge(occ, on='O*NET-SOC Code', how='left')
 
+    profiles['profile_text'] = profiles[
+        ['Title', 'Description', 'attribute_text', 'software_text']
+    ].fillna('').agg(' '.join, axis=1)
     profiles['profile_text'] = profiles['profile_text'].apply(clean_text)
     profiles = profiles[['O*NET-SOC Code', 'Title', 'Description', 'profile_text']]
     profiles.to_csv(ONET_PROFILES_CSV, index=False)

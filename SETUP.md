@@ -16,6 +16,7 @@ Instructions for teammates getting up to speed on the project.
   - `Abilities.xlsx`
   - `Work Activities.xlsx`
   - `Work Styles.xlsx`
+  - `Software Skills.xlsx`
 
 ---
 

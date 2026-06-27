@@ -9,7 +9,7 @@ This document describes the full data preprocessing and preparation pipeline for
 Our preprocessing pipeline prepares two sources of data for model training and occupation matching:
 
 1. **Resume.csv** — 2,484 labeled resumes across 24 job categories (training data for the classifier)
-2. **O\*NET Database** — 1,000+ occupations with structured skill, knowledge, ability, work activity, and work style profiles (used for occupation matching)
+2. **O\*NET Database** — 1,000+ occupations with structured skill, knowledge, ability, work activity, work style, software skill, title, and description profiles (used for occupation matching)
 
 The pipeline is located in `ml/preprocess.py` and must be run before training.
 
@@ -49,6 +49,7 @@ The following O\*NET files are used:
 | `Abilities.xlsx` | Required abilities per occupation |
 | `Work Activities.xlsx` | Day-to-day tasks per occupation |
 | `Work Styles.xlsx` | Personality and work style traits per occupation |
+| `Software Skills.xlsx` | Software categories and workplace examples per occupation |
 
 ### What we do and why
 
@@ -56,18 +57,18 @@ The following O\*NET files are used:
 |---|---|---|
 | Filter by importance | Keep only rows where `Scale ID = IM` (Importance) and `Data Value >= 3.0` | Removes low-relevance skills from each occupation profile — reduces noise |
 | Drop irrelevant columns | Remove `Standard Error`, `CI Bound`, `Date`, `Domain Source`, `N` | No predictive value — statistical metadata only |
-| Join on SOC code | Merge all five skill files and occupation metadata on `O*NET-SOC Code` | Combines all attributes into one record per occupation |
-| Build text profile | Concatenate all `Element Name` values per occupation into one string | Creates a single document per occupation — same format as a resume |
+| Join on SOC code | Merge O\*NET attribute files, software skills, and occupation metadata on `O*NET-SOC Code` | Combines all attributes into one record per occupation |
+| Build text profile | Concatenate title, description, `Element Name` values, and software examples per occupation into one string | Creates a richer single document per occupation — same format as a resume |
 | Clean text | Lowercase, remove punctuation, normalize whitespace | Matches the same cleaning applied to resumes — enables fair comparison |
 | Save | Write to `data/processed/onet_profiles.csv` | One row per occupation: `soc_code`, `title`, `description`, `profile_text` |
 
 ### Result
-- Input: ~150,000 rows across 5 files
+- Input: ~150,000+ rows across 6 attribute/software files plus occupation metadata
 - Output: **894 rows** — one unified text profile per occupation
 
 ### Why not 1,016?
 
-`Occupation Data.xlsx` contains 1,016 occupations, but 122 of them have no rows surviving the `Data Value >= 3.0` importance filter across all 5 skill files. These are mostly:
+`Occupation Data.xlsx` contains 1,016 occupations, but 122 of them have no rows surviving the `Data Value >= 3.0` importance filter across the core O\*NET attribute files. These are mostly:
 - **"All Other" catch-all categories** (e.g., "Managers, All Other", "Computer Occupations, All Other") — O\*NET does not assign detailed skill importance ratings to these
 - **Newer roles** (e.g., Blockchain Engineers, Penetration Testers, Digital Forensics Analysts) — not yet rated in this version of the O\*NET dataset
 
@@ -113,6 +114,7 @@ The target variable `Category` (e.g. `ENGINEERING`, `HEALTHCARE`) is passed dire
 | `Title` | ✅ | Human-readable output label |
 | `Description` | ✅ | Human-readable job summary returned by the API and shown in the frontend |
 | `Element Name` | ✅ | Core feature — the skill/knowledge/ability name |
+| `Workplace Example` | ✅ | Software/tool examples added to occupation matching text |
 | `Data Value` | ✅ (filtered) | Used to filter low-importance entries only |
 | `Standard Error`, CI bounds, `Date` | ❌ | Statistical metadata — no predictive value |
 
@@ -125,7 +127,7 @@ Without `max_features`, TF-IDF on 2,482 resumes would produce ~30,000+ dimension
 
 The resume dataset and O\*NET files come from different sources with different schemas. They are unified as follows:
 
-1. All five O\*NET skill files share the `O*NET-SOC Code` key — they are merged on this key to produce one profile per occupation
+1. O\*NET attribute files, software skills, and occupation metadata share the `O*NET-SOC Code` key — they are merged on this key to produce one profile per occupation
 2. Both resumes and occupation profiles are converted to the same text vector format using TF-IDF — this resolves the schema mismatch and enables direct comparison via cosine similarity
 3. The 24 resume categories bridge to O\*NET via the classifier: the model predicts a broad category, and O\*NET matching runs within that category
 

@@ -9,7 +9,7 @@ COMP442 ML class project -- Job recommender system. User uploads resume or input
 The system is built on a two-stage pipeline.
 
 1. **Data Collection & Preprocessing**
-We sourced a dataset of 2,484 labeled resumes across 24 broad job categories including Healthcare, Finance, Engineering, Education, Sales, Arts, and more. The resume text is cleaned — lowercased, punctuation removed — and duplicate records are dropped before training. Separately, O\*NET occupation profiles are built by combining skills, knowledge, abilities, work activities, and work styles into one text document per occupation, while keeping each occupation's official description for display in the UI.
+We sourced a dataset of 2,484 labeled resumes across 24 broad job categories including Healthcare, Finance, Engineering, Education, Sales, Arts, and more. The resume text is cleaned — lowercased, punctuation removed — and duplicate records are dropped before training. Separately, O\*NET occupation profiles are built from occupation titles, descriptions, skills, knowledge, abilities, work activities, work styles, and software skills.
 
 2. **Feature Extraction**
 Each resume and occupation profile is converted into a numerical representation using TF-IDF (Term Frequency–Inverse Document Frequency). This captures which words and phrases are most significant relative to the entire dataset, turning raw text into a vector the model can learn from.

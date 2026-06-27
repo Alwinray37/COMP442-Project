@@ -12,6 +12,7 @@ ONET_PROFILES_CSV = PROCESSED_DATA_DIR / "onet_profiles.csv"
 JOB_POSTINGS_CSV = RAW_DATA_DIR / "job_postings.csv"
 
 ONET_OCCUPATION_XLSX = RAW_DATA_DIR / "Occupation Data.xlsx"
+ONET_SOFTWARE_SKILLS_XLSX = RAW_DATA_DIR / "Software Skills.xlsx"
 ONET_PROFILE_FILES = [
     RAW_DATA_DIR / "Essential Skills.xlsx",
     RAW_DATA_DIR / "Knowledge.xlsx",
