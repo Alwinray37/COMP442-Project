@@ -24,6 +24,7 @@ def train():
     X = df['Resume_str']
     y = df['Category']
 
+    # Hold out 20% for testing while preserving the category distribution in both splits.
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
     # Fit vectorizer on resumes + O*NET profiles so both share the same vocabulary

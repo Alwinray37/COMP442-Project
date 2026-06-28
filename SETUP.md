@@ -29,9 +29,29 @@ git checkout develop
 ```
 
 **2. Create and activate the virtual environment**
+
+macOS / Linux:
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
+```
+
+Windows PowerShell:
+```powershell
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+Windows Command Prompt:
+```bat
+py -m venv .venv
+.venv\Scripts\activate.bat
+```
+
+If PowerShell blocks activation, run this once in the same terminal:
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
 ```
 
 **3. Install dependencies**
@@ -60,11 +80,21 @@ This saves `tfidf_vectorizer.pkl` and `logistic_classifier.pkl` to `models/`. Yo
 The backend must be running for the frontend to work. Open two terminals:
 
 **Terminal 1 — Backend**
+
+macOS / Linux:
 ```bash
 source .venv/bin/activate
 cd backend
 python app.py
 ```
+
+Windows PowerShell:
+```powershell
+.\.venv\Scripts\Activate.ps1
+cd backend
+python app.py
+```
+
 Runs at `http://localhost:5001`. Keep this running.
 
 **Terminal 2 — Frontend**

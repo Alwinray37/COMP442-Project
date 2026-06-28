@@ -280,6 +280,13 @@ export default function Intake() {
       })
       if (!res.ok) throw new Error(`Server error: ${res.status}`)
       const data = await res.json()
+      console.log('Job recommendation result:', data)
+      console.table(data.matches?.map((match) => ({
+        title: match.job_title,
+        socCode: match.soc_code,
+        score: match.score,
+        percent: `${(match.score * 100).toFixed(1)}%`,
+      })))
       localStorage.setItem('recommendations', JSON.stringify(data))
     } catch {
       setSubmitError('Could not reach the backend. Make sure it is running at localhost:5001.')

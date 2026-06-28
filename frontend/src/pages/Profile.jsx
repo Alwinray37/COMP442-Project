@@ -55,6 +55,13 @@ export default function Profile() {
       })
       if (!res.ok) throw new Error(`Server error: ${res.status}`)
       const recs = await res.json()
+      console.log('Job recommendation result:', recs)
+      console.table(recs.matches?.map((match) => ({
+        title: match.job_title,
+        socCode: match.soc_code,
+        score: match.score,
+        percent: `${(match.score * 100).toFixed(1)}%`,
+      })))
       localStorage.setItem('recommendations', JSON.stringify(recs))
       setRecommendations(recs)
     } catch {
