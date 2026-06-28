@@ -20,15 +20,26 @@ Instructions for teammates getting up to speed on the project.
 
 ---
 
-## First-Time Setup
+## Clone the Repository
 
-**1. Pull the branch**
 ```bash
-git fetch origin
-git checkout develop
+git clone https://github.com/Alwinray37/COMP442-Project.git
+cd COMP442-Project
+git checkout main
+git pull origin main
 ```
 
-**2. Create and activate the virtual environment**
+Confirm you are on `main`:
+```bash
+git branch
+git remote -v
+```
+
+---
+
+## First-Time Setup
+
+**1. Create and activate the virtual environment**
 
 macOS / Linux:
 ```bash
@@ -54,13 +65,13 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\.venv\Scripts\Activate.ps1
 ```
 
-**3. Install dependencies**
+**2. Install dependencies**
 ```bash
 pip install -r requirements.txt
 pip install -r backend/requirements.txt
 ```
 
-**4. Run the ML pipeline (order matters)**
+**3. Run the ML pipeline (order matters)**
 ```bash
 # Clean Resume.csv and build O*NET occupation profiles
 python ml/preprocess.py
